@@ -17,8 +17,8 @@ ext {
     junitVersion = '5.9.0'
 }
 
-sourceCompatibility = '17'
-targetCompatibility = '17'
+sourceCompatibility = "17.PREVIEW"
+targetCompatibility = "17.PREVIEW"
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -42,6 +42,7 @@ javafx {
 
 dependencies {
     antlr "org.antlr:antlr4:4.9.3"
+    implementation 'com.github.curious-odd-man:rgxgen:1.4'
     implementation 'com.github.julianthome:inmemantlr-api:1.9.2'
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")

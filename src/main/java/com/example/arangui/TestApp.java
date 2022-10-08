@@ -2,64 +2,47 @@ package com.example.arangui;
 
 import com.example.arangui.antlr.ArangoLexerRules;
 import com.example.arangui.antlr.ArangoParserRules;
-import org.antlr.runtime.tree.BaseTree;
+import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
+import com.github.curiousoddman.rgxgen.RgxGen;
 import org.antlr.runtime.tree.Tree;
-import org.antlr.v4.Tool;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.tool.Grammar;
-import org.antlr.v4.tool.ast.GrammarRootAST;
+import org.antlr.v4.tool.Rule;
 import org.snt.inmemantlr.GenericParser;
 import org.snt.inmemantlr.exceptions.CompilationException;
 import org.snt.inmemantlr.exceptions.IllegalWorkflowException;
 import org.snt.inmemantlr.exceptions.ParsingException;
-import org.snt.inmemantlr.listener.DefaultListener;
 import org.snt.inmemantlr.listener.DefaultTreeListener;
 import org.snt.inmemantlr.tree.ParseTree;
-import org.snt.inmemantlr.utils.FileUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.FileSystems;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-/*
-module com.example.arangui {
-    requires javafx.controls;
-    requires javafx.fxml;
-    requires org.antlr.antlr4.runtime;
-
-    opens com.example.arangui to javafx.fxml;
-    exports com.example.arangui;
-}
- */
+import java.util.Map;
 
 public class TestApp {
     public static void main(String[] args) {
+        if (true) {
+            testAutocompletionHints();
+        }
+        if (false) {
+            testAST();
+        }
+        if (true) {
+            testGrammarAST();
+        }
+        AranagoGrammarRulesSingleton.getInstance().initRegexpsByNames();
+    }
 
+    private static void testAutocompletionHints() {
+
+    }
+
+    private static void testAST() {
         CharStream in = CharStreams.fromString("INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt");
         ArangoLexerRules lexer = new ArangoLexerRules(in);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         ArangoParserRules parser = new ArangoParserRules(tokens);
-        System.out.println();
 
-        Tool tool = new Tool();
-        tool.outputDirectory = System.getProperty("user.dir") + "/build/generated-src/antlr/main/com/example/arangui/antlr";
-        Grammar g = tool.loadGrammar("src/main/antlr/ArangoParserRules.g4");
-        System.out.println(toStringTree((BaseTree) g.ast.getChild(3), 0, new StringBuilder()));
-        /*parser.setBuildParseTree(true);
-        RuleContext tree = parser.query();
-        List<String> ruleNames = Arrays.asList(parser.getRuleNames());
-        RuleContext rc = parser.getRuleContext();
-        System.out.println("");
-
-        System.out.println("================================================================");
-        System.out.println(AntlrTreeUtils.toPrettyTree(tree, ruleNames));
-        System.out.println("================================================================");
-
-
+        parser.setBuildParseTree(true);
         String baseG4Path = "src/main/antlr/";
         File fParser = new File(baseG4Path + "ArangoParserRules.g4");
         File fLexer = new File(baseG4Path + "ArangoLexerRules.g4");
@@ -79,9 +62,32 @@ public class TestApp {
             System.out.println("================================================================");
         } catch (IllegalWorkflowException | ParsingException | FileNotFoundException | CompilationException e) {
             throw new RuntimeException(e);
-        }*/
+        }
     }
 
+    private static void testGrammarAST() {
+        System.out.println(toStringTree(
+                AranagoGrammarRulesSingleton.getInstance().getParserGrammar().ast,
+                0,
+                new StringBuilder()
+        ));
+        System.out.println("================================================================");
+        System.out.println(toStringTree(
+                AranagoGrammarRulesSingleton.getInstance().getLexerGrammar().ast,
+                0,
+                new StringBuilder()
+        ));
+    }
+
+    public static String toStringTree(Map<String, Rule> rulesByNames, int level, StringBuilder buf) {
+        for (Map.Entry<String, Rule> ruleByName : rulesByNames.entrySet()) {
+            buf.append(ruleByName.getKey());
+            //toStringTree(ruleByName.getValue(), 1, buf);
+            //ruleByName.getValue()
+        }
+
+        return buf.toString();
+    }
     public static String toStringTree(Tree node, int level, StringBuilder buf) {
         buf.append("\n");
         buf.append("  ".repeat(level));
