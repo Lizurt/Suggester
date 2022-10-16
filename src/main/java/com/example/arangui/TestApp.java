@@ -3,9 +3,9 @@ package com.example.arangui;
 import com.example.arangui.antlr.ArangoLexerRules;
 import com.example.arangui.antlr.ArangoParserRules;
 import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
-import com.github.curiousoddman.rgxgen.RgxGen;
 import org.antlr.runtime.tree.Tree;
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.tool.Rule;
 import org.snt.inmemantlr.GenericParser;
 import org.snt.inmemantlr.exceptions.CompilationException;
@@ -16,24 +16,74 @@ import org.snt.inmemantlr.tree.ParseTree;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Map;
+import java.util.*;
 
 public class TestApp {
     public static void main(String[] args) {
         if (true) {
-            testAutocompletionHints();
-        }
-        if (false) {
+            System.out.println("----------------------------");
             testAST();
         }
         if (true) {
+            System.out.println("----------------------------");
             testGrammarAST();
         }
-        AranagoGrammarRulesSingleton.getInstance().initRegexpsByNames();
+        if (true) {
+            System.out.println("----------------------------");
+            for (Map.Entry<String, Set<String>> a : AranagoGrammarRulesSingleton.getInstance().getLexerRegexpsByNames().entrySet()) {
+                System.out.println(a.getKey() + " <=> " + a.getValue());
+            }
+        }
+        if (true) {
+            System.out.println("----------------------------");
+            testAutocompletionHints();
+        }
     }
 
     private static void testAutocompletionHints() {
+        Scanner scanner = new Scanner(System.in);
+        String line;
+        while (true) {
+            System.out.println("> ");
+            line = scanner.nextLine();
+            if (line.equals("exit")) {
+                return;
+            }
 
+            CharStream charStream = CharStreams.fromString(line);
+            ArangoLexerRules lexer = new ArangoLexerRules(charStream);
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            ArangoParserRules parser = new ArangoParserRules(tokens, true);
+            ArangoParserRules.QueryContext queryContext = parser.query();
+            System.out.println(queryContext.toStringTree());
+
+            List<org.antlr.v4.runtime.tree.ParseTree> childes = queryContext.children;
+            org.antlr.v4.runtime.tree.ParseTree possibleErrorNode = childes.get(childes.size() - 1);
+            while (!(possibleErrorNode instanceof ErrorNode)) {
+                possibleErrorNode = possibleErrorNode.getChild(possibleErrorNode.getChildCount() - 1);
+            }
+            // here we know on which deepness level the parse error start.
+            // Let's find where it starts in the childes list
+            int errorStartIndex;
+            org.antlr.v4.runtime.tree.ParseTree errorNodeParent = possibleErrorNode.getParent();
+            for (errorStartIndex = errorNodeParent.getChildCount() - 1; errorStartIndex > 0; errorStartIndex--) {
+                if (!(errorNodeParent.getChild(errorStartIndex - 1) instanceof ErrorNode)) {
+                    break;
+                }
+            }
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (int i = errorStartIndex; i < errorNodeParent.getChildCount(); i++) {
+                stringBuilder.append(errorNodeParent.getChild(i).getText());
+            }
+            String wrongNodeText = stringBuilder.toString();
+            System.out.println("Something's wrong with '" + wrongNodeText + "'.");
+
+            List<String> hints = new ArrayList<>();
+
+            System.out.println("You probably want to write:");
+            System.out.println(ArangoParserRules.getRuleByContextClass(errorNodeParent.getClass()));
+        }
     }
 
     private static void testAST() {

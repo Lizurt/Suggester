@@ -1,5 +1,6 @@
 package com.example.arangui.arango.grammar;
 
+import com.example.arangui.antlr.ArangoParserRules;
 import org.antlr.v4.Tool;
 import org.antlr.v4.misc.OrderedHashMap;
 import org.antlr.v4.tool.Alternative;
