@@ -3,6 +3,7 @@ package com.example.arangui;
 import com.example.arangui.antlr.ArangoLexerRules;
 import com.example.arangui.antlr.ArangoParserRules;
 import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
+import com.example.arangui.arango.hints.ArangoQueryDefaultAnalyser;
 import org.antlr.runtime.tree.Tree;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -57,32 +58,11 @@ public class TestApp {
             ArangoParserRules.QueryContext queryContext = parser.query();
             System.out.println(queryContext.toStringTree());
 
-            List<org.antlr.v4.runtime.tree.ParseTree> childes = queryContext.children;
-            org.antlr.v4.runtime.tree.ParseTree possibleErrorNode = childes.get(childes.size() - 1);
-            while (!(possibleErrorNode instanceof ErrorNode)) {
-                possibleErrorNode = possibleErrorNode.getChild(possibleErrorNode.getChildCount() - 1);
+            ArangoQueryDefaultAnalyser arangoQueryDefaultAnalyser = new ArangoQueryDefaultAnalyser();
+            System.out.println("Options are:");
+            for (String hint : arangoQueryDefaultAnalyser.getHints(queryContext)) {
+                System.out.println("    " + hint);
             }
-            // here we know on which deepness level the parse error start.
-            // Let's find where it starts in the childes list
-            int errorStartIndex;
-            org.antlr.v4.runtime.tree.ParseTree errorNodeParent = possibleErrorNode.getParent();
-            for (errorStartIndex = errorNodeParent.getChildCount() - 1; errorStartIndex > 0; errorStartIndex--) {
-                if (!(errorNodeParent.getChild(errorStartIndex - 1) instanceof ErrorNode)) {
-                    break;
-                }
-            }
-            StringBuilder stringBuilder = new StringBuilder();
-
-            for (int i = errorStartIndex; i < errorNodeParent.getChildCount(); i++) {
-                stringBuilder.append(errorNodeParent.getChild(i).getText());
-            }
-            String wrongNodeText = stringBuilder.toString();
-            System.out.println("Something's wrong with '" + wrongNodeText + "'.");
-
-            List<String> hints = new ArrayList<>();
-
-            System.out.println("You probably want to write:");
-            System.out.println(ArangoParserRules.getRuleByContextClass(errorNodeParent.getClass()));
         }
     }
 
