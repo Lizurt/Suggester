@@ -16,12 +16,13 @@ import java.util.*;
 
 public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
     public final static Random HINTS_GENERATOR_RANDOM = new Random(123456789);
+
     public List<String> getHints(ArangoParserRules.QueryContext queryContext) {
         ParseTree lastDeepestNode = getLastDeepestNode(queryContext);
-        ParseTree parentNodeForHints = lastDeepestNode;
+        ParseTree nodeForHints = lastDeepestNode;
         LinkedList<ParseTree> writtenNodesInIncompleteToken = new LinkedList<>();
         if (lastDeepestNode instanceof ErrorNode) {
-            parentNodeForHints = lastDeepestNode.getParent();
+            nodeForHints = lastDeepestNode.getParent();
             // firstly let's check its parent in case if there are other error nodes
             ParseTree nodeParent = lastDeepestNode.getParent();
             for (int i = nodeParent.getChildCount() - 1; i >= 0; i--) {
@@ -37,28 +38,28 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
                 // alright no missing nodes, but this node is probably haven't been written completely, let's try to
                 // find hints for it
                 if (lastDeepestNode instanceof TerminalNode) {
-                    parentNodeForHints = lastDeepestNode.getParent();
-                    ParseTree nodeParent = lastDeepestNode.getParent();
-                    for (int i = nodeParent.getChildCount() - 1; i >= 0; i--) {
-                        if (nodeParent.getChild(i) instanceof TerminalNode) {
-                            writtenNodesInIncompleteToken.addFirst(nodeParent.getChild(i));
-                        }
+                    nodeForHints = lastDeepestNode.getParent();
+                    for (int i = 0; i < nodeForHints.getChildCount(); i++) {
+                        writtenNodesInIncompleteToken.addAll(
+                                getAllChildesOf(nodeForHints.getChild(i))
+                        );
                     }
                 }
             } else {
                 // alright there were error missing nodes, let's assume a user is writing that missing node but their
                 // input was misidentified as some other nodes
-                parentNodeForHints = possibleErrorMissingNode.getParent();
+                nodeForHints = possibleErrorMissingNode.getParent();
                 int nodeIndex = getNodeIndexInParentNode(possibleErrorMissingNode);
-                for (int i = nodeIndex; i < possibleErrorMissingNode.getChildCount(); i++) {
+                for (int i = nodeIndex + 1; i < possibleErrorMissingNode.getChildCount(); i++) {
+                    writtenNodesInIncompleteToken.addLast(nodeForHints.getChild(i));
                     writtenNodesInIncompleteToken.addAll(
-                            getAllChildesOf(possibleErrorMissingNode.getParent().getChild(i))
+                            getAllChildesOf(possibleErrorMissingNode.getChild(i))
                     );
                 }
             }
         }
         String userWrittenTokenPart = nodesToString(writtenNodesInIncompleteToken);
-        Rule ruleForHints = ArangoParserRules.getRuleByContextClass(parentNodeForHints.getClass());
+        Rule ruleForHints = ArangoParserRules.getRuleByContextClass(nodeForHints.getClass());
         if (ruleForHints == null) {
             throw new RuntimeException("RuleForHints is null which shouldn't happen");
         }
@@ -75,7 +76,7 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
                 if (rgxGen.getUniqueEstimation().isEmpty()) {
                     continue;
                 }
-                String generatedPossibleHint = rgxGen.generate();
+                String generatedPossibleHint = rgxGen.generate(HINTS_GENERATOR_RANDOM);
                 String lowercasedHint = generatedPossibleHint.toLowerCase();
                 String lowercasedUserWrittenTokenPart = userWrittenTokenPart.toLowerCase();
                 if (!lowercasedHint.startsWith(lowercasedUserWrittenTokenPart)) {
