@@ -63,11 +63,15 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
         if (ruleForHints == null) {
             throw new RuntimeException("RuleForHints is null which shouldn't happen");
         }
-        List<String> hints = new ArrayList<>();
         // so at the moment we know what a user wrote (the part where parser failed to create a correct node) and what
         // rule we're expecting the user to follow when writing. Now we can generate possible words
         // the user can write here
+        return getHints(ruleForHints, userWrittenTokenPart);
+    }
+
+    private List<String> getHints(Rule ruleForHints, String userWrittenTokenPart) {
         List<Tree> rawHints = getFirstHintableNodesInRule(ruleForHints);
+        List<String> hints = new ArrayList<>();
         for (Tree node : rawHints) {
             Set<String> regexpsForTheNode =
                     AranagoGrammarRulesSingleton.getInstance().getLexerRegexpsByNames().get(node.getText());
