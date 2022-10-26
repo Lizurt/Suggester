@@ -49,14 +49,14 @@ options {
 
 // ################################################################
 query :
-    insertSt
-    | forSt
+    insert
+    | forLoop
 ;
 // ################################################################
-insertSt :
-    INSERT L_CUR_BR keysAndVals R_CUR_BR into
+insert :
+    INSERT CHAR_L_CUR_BR keysAndVals CHAR_R_CUR_BR into
 ;
-forSt :
+forLoop :
     FOR identifier IN identifier forStatements
 ;
 // ################################################################
@@ -67,17 +67,17 @@ forStatements :
     returnSt
 ;
 keysAndVals :
-    keyAndVal (COMMA keyAndVal)*
+    keyAndVal (CHAR_COMMA keyAndVal)*
 ;
 keyAndVal :
-    identifier COLON value
+    identifier CHAR_COLON value
 ;
 value :
-    STR_VAL | NUM_VAL
+    VAL_STRING | VAL_DOUBLE
 ;
 identifier :
-    AL_NUM+
+    VAL_IDENTIFIER
 ;
 returnSt :
-    RETURN identifier (DOT identifier)?
+    RETURN identifier (CHAR_DOT identifier)?
 ;
