@@ -50,6 +50,7 @@ public class TestApp {
             if (line.equals("exit")) {
                 return;
             }
+            line += "\n";
 
             CharStream charStream = CharStreams.fromString(line);
             ArangoLexerRules lexer = new ArangoLexerRules(charStream);

@@ -180,7 +180,7 @@ CHAR_APOSTROPHE :
 CHAR_QUOTE :
     ["]
 ;
-CHAR_REVERSE_SLASH :
+CHAR_BACKSLASH :
     [\\]
 ;
 CHAR_VERT_LINE :
@@ -223,11 +223,26 @@ fragment VAL_CHAR :
 fragment VAL_DIGIT :
     [0-9]
 ;
-WS :
-    [ \r\n\t]+ -> skip
-;
 fragment VAL_ANY_CHAR :
     .*?
+;
+IGNORED_COMMENT :
+    (CHAR_SLASH CHAR_SLASH VAL_ANY_CHAR IGNORED_NL) -> skip
+;
+IGNORED_MULTILINE_COMMENT :
+    (CHAR_SLASH CHAR_ASTERISK VAL_ANY_CHAR CHAR_ASTERISK CHAR_SLASH) -> skip
+;
+IGNORED_NL :
+    (([\n]) | ([\r]? [\n]) | ([\n] [\r]?)) -> skip
+;
+IGNORED_TAB :
+    [\t] -> skip
+;
+IGNORED_SPACE :
+    [ ] -> skip
+;
+IGNORED_WS :
+    (IGNORED_NL | IGNORED_TAB | IGNORED_SPACE)+ -> skip
 ;
 // Letters ################################################################
 fragment A : [Aa];

@@ -9,7 +9,6 @@ options {
     import org.antlr.v4.tool.Rule;
     import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
 }
-
 @parser::members {
     public final static int CONTEXT_POSTFIX_LENGTH = 7;
 
@@ -46,8 +45,6 @@ options {
         return rulesByContextClasses.containsKey(contextClass) ? rulesByContextClasses.get(contextClass) : null;
     }
 }
-
-// ################################################################
 query :
     insert
     | forLoop
