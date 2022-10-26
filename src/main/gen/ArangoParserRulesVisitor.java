@@ -23,17 +23,17 @@ public interface ArangoParserRulesVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitQuery(ArangoParserRules.QueryContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link ArangoParserRules#insertSt}.
+	 * Visit a parse tree produced by {@link ArangoParserRules#insert}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitInsertSt(ArangoParserRules.InsertStContext ctx);
+	T visitInsert(ArangoParserRules.InsertContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link ArangoParserRules#forSt}.
+	 * Visit a parse tree produced by {@link ArangoParserRules#forLoop}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitForSt(ArangoParserRules.ForStContext ctx);
+	T visitForLoop(ArangoParserRules.ForLoopContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link ArangoParserRules#into}.
 	 * @param ctx the parse tree

@@ -34,25 +34,25 @@ public class ArangoParserRulesBaseListener implements ArangoParserRulesListener 
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterInsertSt(ArangoParserRules.InsertStContext ctx) { }
+	@Override public void enterInsert(ArangoParserRules.InsertContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitInsertSt(ArangoParserRules.InsertStContext ctx) { }
+	@Override public void exitInsert(ArangoParserRules.InsertContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterForSt(ArangoParserRules.ForStContext ctx) { }
+	@Override public void enterForLoop(ArangoParserRules.ForLoopContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitForSt(ArangoParserRules.ForStContext ctx) { }
+	@Override public void exitForLoop(ArangoParserRules.ForLoopContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

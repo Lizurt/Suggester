@@ -30,14 +30,14 @@ public class ArangoParserRulesBaseVisitor<T> extends AbstractParseTreeVisitor<T>
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitInsertSt(ArangoParserRules.InsertStContext ctx) { return visitChildren(ctx); }
+	@Override public T visitInsert(ArangoParserRules.InsertContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitForSt(ArangoParserRules.ForStContext ctx) { return visitChildren(ctx); }
+	@Override public T visitForLoop(ArangoParserRules.ForLoopContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

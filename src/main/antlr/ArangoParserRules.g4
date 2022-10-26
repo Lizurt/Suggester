@@ -70,7 +70,7 @@ keyAndVal :
     identifier CHAR_COLON value
 ;
 value :
-    VAL_STRING | VAL_DOUBLE
+    VAL_STRING | VAL_FLOAT
 ;
 identifier :
     VAL_IDENTIFIER

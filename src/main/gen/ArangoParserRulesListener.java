@@ -24,25 +24,25 @@ public interface ArangoParserRulesListener extends ParseTreeListener {
 	 */
 	void exitQuery(ArangoParserRules.QueryContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link ArangoParserRules#insertSt}.
+	 * Enter a parse tree produced by {@link ArangoParserRules#insert}.
 	 * @param ctx the parse tree
 	 */
-	void enterInsertSt(ArangoParserRules.InsertStContext ctx);
+	void enterInsert(ArangoParserRules.InsertContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link ArangoParserRules#insertSt}.
+	 * Exit a parse tree produced by {@link ArangoParserRules#insert}.
 	 * @param ctx the parse tree
 	 */
-	void exitInsertSt(ArangoParserRules.InsertStContext ctx);
+	void exitInsert(ArangoParserRules.InsertContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link ArangoParserRules#forSt}.
+	 * Enter a parse tree produced by {@link ArangoParserRules#forLoop}.
 	 * @param ctx the parse tree
 	 */
-	void enterForSt(ArangoParserRules.ForStContext ctx);
+	void enterForLoop(ArangoParserRules.ForLoopContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link ArangoParserRules#forSt}.
+	 * Exit a parse tree produced by {@link ArangoParserRules#forLoop}.
 	 * @param ctx the parse tree
 	 */
-	void exitForSt(ArangoParserRules.ForStContext ctx);
+	void exitForLoop(ArangoParserRules.ForLoopContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link ArangoParserRules#into}.
 	 * @param ctx the parse tree

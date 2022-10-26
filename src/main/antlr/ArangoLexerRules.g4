@@ -205,17 +205,20 @@ CHAR_QUESTION_MARK :
     [?]
 ;
 // Misc ################################################################
-VAL_DOUBLE :
-    CHAR_MINUS? VAL_DIGITS (CHAR_DOT VAL_DIGITS)?
+VAL_UINT :
+    VAL_DIGIT+
+;
+VAL_INT :
+    CHAR_MINUS? VAL_UINT
+;
+VAL_FLOAT :
+    VAL_INT (CHAR_DOT VAL_UINT)?
 ;
 VAL_STRING :
     CHAR_QUOTE VAL_ANY_CHAR CHAR_QUOTE
 ;
 VAL_IDENTIFIER :
     VAL_CHAR (VAL_CHAR | VAL_DIGIT)*
-;
-fragment VAL_DIGITS :
-    VAL_DIGIT+
 ;
 fragment VAL_CHAR :
     [a-zA-Z]
