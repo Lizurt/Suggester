@@ -2,8 +2,19 @@ lexer grammar ArangoLexerRules;
 @header {
     package com.example.arangui.antlr;
 }
+// ################################################################
+// Keywords but cooler (they're not in the AQL keywords list for some reason)
+OPTIONS :
+    O P T I O N S
+;
+FILTER :
+    F I L T E R
+;
+LIKE :
+    L I K E
+;
 // https://www.arangodb.com/docs/stable/aql/fundamentals-syntax.html
-// KEYWORDS ################################################################
+// Keywords ################################################################
 AGGREGATE :
     A G G R E G A T E
 ;
@@ -106,7 +117,61 @@ WITH :
 WINDOW :
     W I N D O W
 ;
-// Other chars ################################################################
+// ################################################################
+// ForLoop options
+INDEX_HINT :
+    'indexHint'
+;
+FORCE_INDEX_HINT :
+    'forceIndexHint'
+;
+DISABLE_INDEX :
+    'disableIndex'
+;
+MAX_PROJECTIONS :
+    'maxProjections'
+;
+USE_CACHE :
+    'useCache'
+;
+LOOKAHEAD :
+    'lookahead'
+;
+// Vals ################################################################
+VAL_BOOL :
+    TRUE | FALSE
+;
+VAL_FLOAT :
+    VAL_INT (CHAR_DOT VAL_UINT)?
+;
+VAL_INT :
+    CHAR_MINUS? VAL_DIGIT+
+;
+VAL_UINT :
+    VAL_DIGIT+
+;
+VAL_STRING :
+    CHAR_QUOTE VAL_ANY_CHAR CHAR_QUOTE
+;
+VAL_IDENTIFIER :
+    VAL_CHAR VAL_WEAKEST_IDENTIFIER?
+;
+VAL_WEAKER_IDENTIFIER :
+    (VAL_CHAR | VAL_DIGIT) VAL_WEAKEST_IDENTIFIER?
+;
+VAL_WEAKEST_IDENTIFIER :
+    (VAL_CHAR | VAL_DIGIT | CHAR_UNDERSCORE)+
+;
+fragment VAL_CHAR :
+    [a-zA-Z]
+;
+fragment VAL_DIGIT :
+    [0-9]
+;
+fragment VAL_ANY_CHAR :
+    .*?
+;
+// Chars ################################################################
 CHAR_BACKTICK :
     [`]
 ;
@@ -204,31 +269,84 @@ CHAR_SLASH :
 CHAR_QUESTION_MARK :
     [?]
 ;
+// https://www.arangodb.com/docs/stable/aql/operators.html
+// Operators ################################################################
+// ---- boolean ----
+OP_EQUALITY :
+    CHAR_EQUALS CHAR_EQUALS
+;
+OP_INEQUALITY :
+    CHAR_EXCL_MARK CHAR_EQUALS
+;
+OP_LT :
+    CHAR_L_TRIANG_BR
+;
+OP_LE :
+    CHAR_L_TRIANG_BR CHAR_EQUALS
+;
+OP_GT :
+    CHAR_R_TRIANG_BR
+;
+OP_GE :
+    CHAR_R_TRIANG_BR CHAR_EQUALS
+;
+OP_IN :
+    IN
+;
+OP_NOT_IN :
+    NOT IN
+;
+OP_LIKE :
+    LIKE
+;
+OP_NOT_LIKE :
+    NOT LIKE
+;
+OP_MATCHES_REGEXP :
+    CHAR_EQUALS CHAR_TILDA
+;
+OP_DOESNT_MATCH_REGEXP :
+    CHAR_EXCL_MARK CHAR_TILDA
+;
+OP_AND :
+    (CHAR_AMPERSAND CHAR_AMPERSAND)
+    | AND
+;
+OP_OR :
+    (CHAR_VERT_LINE CHAR_VERT_LINE)
+    | OR
+;
+OP_NOT :
+    CHAR_EXCL_MARK
+    | NOT
+;
+// ---- math ----
+OP_ADD :
+    CHAR_PLUS
+;
+OP_SUB :
+    CHAR_MINUS
+;
+OP_MUL :
+    CHAR_ASTERISK
+;
+OP_DIV :
+    CHAR_SLASH
+;
+OP_MOD :
+    CHAR_PERCENT
+;
+// ---- misc ----
+OP_TERNARY_IF :
+    CHAR_QUESTION_MARK
+;
+OP_TERNARY_ELSE :
+    CHAR_COLON
+;
+OP_RANGE :
+    CHAR_DOT CHAR_DOT
+;
 // Misc ################################################################
-VAL_UINT :
-    VAL_DIGIT+
-;
-VAL_INT :
-    CHAR_MINUS? VAL_UINT
-;
-VAL_FLOAT :
-    VAL_INT (CHAR_DOT VAL_UINT)?
-;
-VAL_STRING :
-    CHAR_QUOTE VAL_ANY_CHAR CHAR_QUOTE
-;
-VAL_IDENTIFIER :
-    VAL_CHAR (VAL_CHAR | VAL_DIGIT)*
-;
-fragment VAL_CHAR :
-    [a-zA-Z]
-;
-fragment VAL_DIGIT :
-    [0-9]
-;
-fragment VAL_ANY_CHAR :
-    .*?
-;
 IGNORED_COMMENT :
     (CHAR_SLASH CHAR_SLASH VAL_ANY_CHAR IGNORED_NL) -> skip
 ;

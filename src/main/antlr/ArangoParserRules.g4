@@ -1,3 +1,9 @@
+// todo list:
+// https://www.arangodb.com/docs/stable/aql/functions-string.html
+// https://www.arangodb.com/docs/stable/aql/fundamentals-bind-parameters.html
+// https://www.arangodb.com/docs/stable/aql/operators.html - tokens are done, but not allthe parser rules. Also - check array operators (all, any, none etc)
+// https://www.arangodb.com/docs/stable/aql/graphs-traversals.html
+
 parser grammar ArangoParserRules;
 options {
     tokenVocab = ArangoLexerRules;
@@ -49,32 +55,148 @@ query :
     insert
     | forLoop
 ;
-// ################################################################
+// Basic queries ################################################################
 insert :
-    INSERT CHAR_L_CUR_BR keysAndVals CHAR_R_CUR_BR into
+    INSERT CHAR_L_CUR_BR insertKeysVals CHAR_R_CUR_BR insertInto
 ;
 forLoop :
     FOR identifier IN identifier forStatements
 ;
 // ################################################################
-into :
-    INTO identifier
+forOptions :
+    OPTIONS CHAR_L_CUR_BR forOptKeysVals CHAR_R_CUR_BR
+;
+forIn :
+    identifier
+    | array
 ;
 forStatements :
-    returnSt
+    forLoop
+    | (forFilter? forReturn)
 ;
-keysAndVals :
-    keyAndVal (CHAR_COMMA keyAndVal)*
+forReturn :
+    RETURN
+    dottableIdentifiers
+    | (CHAR_L_CUR_BR
+            (VAL_STRING CHAR_COLON mathExpr (CHAR_COMMA VAL_STRING CHAR_COLON mathExpr)*)?
+        CHAR_R_CUR_BR)
+
 ;
-keyAndVal :
+forFilter :
+    FILTER dottableIdentifiers
+;
+
+insertInto :
+    INTO identifier
+;
+insertKeysVals :
+    insertKeyVal (CHAR_COMMA insertKeyVal)*
+;
+insertKeyVal :
     identifier CHAR_COLON value
 ;
-value :
-    VAL_STRING | VAL_FLOAT
+// ForLoop options ################################################################
+forOptKeysVals :
+    forOptKeyVal (CHAR_COMMA forOptKeyVal)*
+;
+forOptKeyVal :
+    (forOptIndexHintKey CHAR_COLON forOptIndexHintVal)
+    | (forOptForceIndexHintKey CHAR_COLON forOptForceIndexHintVal)
+    | (forOptDisableIndexKey CHAR_COLON forOptDisableIndexVal)
+    | (forOptMaxProjectionsKey CHAR_COLON forOptMaxProjectionsVal)
+    | (forOptUseCacheKey CHAR_COLON forOptUseCacheVal)
+    | (forOptLookaheadKey CHAR_COLON forOptLookaheadVal)
+;
+forOptIndexHintKey :
+    INDEX_HINT
+;
+forOptForceIndexHintKey :
+    FORCE_INDEX_HINT
+;
+forOptDisableIndexKey :
+    DISABLE_INDEX
+;
+forOptMaxProjectionsKey :
+    MAX_PROJECTIONS
+;
+forOptUseCacheKey :
+    USE_CACHE
+;
+forOptLookaheadKey :
+    LOOKAHEAD
+;
+forOptIndexHintVal :
+    valueString | arrayString
+;
+forOptForceIndexHintVal :
+    valueBool
+;
+forOptDisableIndexVal :
+    valueBool
+;
+forOptMaxProjectionsVal :
+    valueUint
+;
+forOptUseCacheVal :
+    valueBool
+;
+forOptLookaheadVal :
+    valueUint
+;
+// Values ################################################################
+array :
+    CHAR_L_BR (value (CHAR_COMMA value)*)? CHAR_R_BR
+;
+arrayString :
+    CHAR_L_BR (valueString (CHAR_COMMA valueString)*)? CHAR_R_BR
+;
+dottableIdentifiers :
+    identifier (CHAR_DOT identifier)*
 ;
 identifier :
     VAL_IDENTIFIER
 ;
-returnSt :
-    RETURN identifier (CHAR_DOT identifier)?
+value :
+    valueString valueFloat
+;
+valueString :
+    VAL_STRING
+;
+valueFloat :
+    VAL_FLOAT
+;
+valueInt :
+    VAL_INT
+;
+valueUint :
+    VAL_UINT
+;
+valueBool :
+    VAL_BOOL
+;
+// Functions ################################################################
+funcCall :
+    identifier CHAR_L_BR identifier* CHAR_R_BR
+;
+// Math ################################################################
+mathExpr :
+    mathAdd
+;
+mathAdd :
+    mathMult (mathOpAdd mathMult)*
+;
+mathMult :
+    mathGroup (mathOpMult mathGroup)*
+;
+mathGroup :
+    (VAL_FLOAT)
+    | (dottableIdentifiers)
+    | (funcCall)
+    | (CHAR_L_BR mathExpr CHAR_R_BR)
+;
+mathOpMult :
+    CHAR_ASTERISK | CHAR_SLASH
+;
+mathOpAdd :
+    CHAR_MINUS | CHAR_PLUS
 ;

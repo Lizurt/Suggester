@@ -64,6 +64,10 @@ public class TestApp {
             for (String hint : arangoQueryDefaultAnalyser.getHints(queryContext)) {
                 System.out.println("    " + hint);
             }
+            boolean a = true;
+            boolean b = false;
+            boolean c = false;
+            boolean d = (a == b ? true : false) || false;
         }
     }
 
