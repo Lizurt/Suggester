@@ -4,6 +4,7 @@ import com.example.arangui.antlr.ArangoParserRules;
 import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
 import com.github.curiousoddman.rgxgen.RgxGen;
 import org.antlr.runtime.tree.Tree;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -17,8 +18,8 @@ import java.util.*;
 public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
     public final static Random HINTS_GENERATOR_RANDOM = new Random(123456789);
 
-    public List<String> getHints(ArangoParserRules.QueryContext queryContext) {
-        ParseTree lastDeepestNode = getLastDeepestNode(queryContext);
+    public List<String> getHints(ParseTree contextNode) {
+        ParseTree lastDeepestNode = getLastDeepestNode(contextNode);
         ParseTree nodeForHints = lastDeepestNode;
         LinkedList<ParseTree> writtenNodesInIncompleteToken = new LinkedList<>();
         if (lastDeepestNode instanceof ErrorNode) {

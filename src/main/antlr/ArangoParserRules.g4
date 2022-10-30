@@ -1,9 +1,3 @@
-// todo list:
-// https://www.arangodb.com/docs/stable/aql/functions-string.html
-// https://www.arangodb.com/docs/stable/aql/fundamentals-bind-parameters.html
-// https://www.arangodb.com/docs/stable/aql/operators.html - tokens are done, but not allthe parser rules. Also - check array operators (all, any, none etc)
-// https://www.arangodb.com/docs/stable/aql/graphs-traversals.html
-
 parser grammar ArangoParserRules;
 options {
     tokenVocab = ArangoLexerRules;
@@ -51,152 +45,472 @@ options {
         return rulesByContextClasses.containsKey(contextClass) ? rulesByContextClasses.get(contextClass) : null;
     }
 }
-query :
-    insert
-    | forLoop
-;
-// Basic queries ################################################################
-insert :
-    INSERT CHAR_L_CUR_BR insertKeysVals CHAR_R_CUR_BR insertInto
-;
-forLoop :
-    FOR identifier IN identifier forStatements
-;
+
+optionalPruneVariable
+    : expression
+    | varName OP_ASSIGN expression
+    ;
+
+withCollection
+    : valIdentifier
+    | valAnyBindParameter
+    ;
+
+optionalWith
+    : /* empty */
+    | WITH withCollection (CHAR_COMMA withCollection)*
+    ;
+
+queryStart
+    : optionalWith query EOF
+    ;
+
+query
+    : statament* finalStatement
+    ;
+
+finalStatement
+    : returnStatement
+    | removeStatement
+    | insertStatement
+    | updateStatement
+    | replaceStatement
+    | upsertStatement
+    ;
+
+statament
+    : forStatement
+    | letStatement
+    | filterStatement
+    | collectStatement
+    | sortStatement
+    | limitStatement
+    | windowStatement
+    | removeStatement
+    | insertStatement
+    | updateStatement
+    | replaceStatement
+    | upsertStatement
+    ;
+
+forOutputVars
+    : varName (CHAR_COMMA varName)*
+    ;
+
+pruneAndOptions
+    : /* empty */
+    | valIdentifier optionalPruneVariable
+    | valIdentifier optionalPruneVariable valIdentifier valObject
+    ;
+
+traversalGraphInfo
+    : graphDirectionSteps expression graphSubject
+    ;
+
+shortestGraphInfo
+    : graphDirection SHORTEST_PATH expression valIdentifier expression graphSubject statementOptions
+    ;
+
+kShortestPathsGraphInfo
+    : graphDirection K_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions
+    ;
+
+kPathsGraphInfo
+    : graphDirectionSteps K_PATHS expression valIdentifier expression graphSubject statementOptions
+    ;
+
+allShortestPathsGraphInfo
+    : graphDirection ALL_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions
+    ;
+
+forStatement
+    : FOR forOutputVars IN expression forOptions
+    | FOR forOutputVars IN traversalGraphInfo pruneAndOptions
+    | FOR forOutputVars IN shortestGraphInfo
+    | FOR forOutputVars IN kShortestPathsGraphInfo
+    | FOR forOutputVars IN kPathsGraphInfo
+    | FOR forOutputVars IN allShortestPathsGraphInfo
+    ;
+
+filterStatement
+    : FILTER expression
+    ;
+
+letStatement
+    : LET letElement (CHAR_COMMA letElement)*
+    ;
+
+letElement
+    : varName OP_ASSIGN expression
+    ;
+
+countInto
+    : WITH valIdentifier INTO varName
+    ;
+
+collectVarList
+    : COLLECT collectElement (CHAR_COMMA collectElement)*
+    ;
+
+collectStatement
+    : COLLECT countInto statementOptions
+    | collectVarList countInto statementOptions
+    | COLLECT aggregate collectOptionalInto statementOptions
+    | collectVarList aggregate collectOptionalInto statementOptions
+    | collectVarList collectOptionalInto statementOptions
+    | collectVarList collectOptionalInto keep statementOptions
+    ;
+
+collectElement
+    : varName OP_ASSIGN expression
+    ;
+
+collectOptionalInto
+    : /* empty */
+    | INTO varName
+    | INTO varName OP_ASSIGN expression
+    ;
+
+keep
+    : valIdentifier varName (CHAR_COMMA varName)*
+    ;
+
+aggregate
+    : AGGREGATE aggregateElement (CHAR_COMMA aggregateElement)*
+    ;
+
+aggregateElement
+    : varName OP_ASSIGN aggregateFunctionCall
+    ;
+
+aggregateFunctionCall
+    : funcName CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
+    ;
+
+sortStatement
+    : SORT sortElement (CHAR_COMMA sortElement)*
+    ;
+
+sortElement
+    : expression sortDirection
+    ;
+
+sortDirection
+    : /* empty */
+    | ASC
+    | DESC
+    | valSimple
+    ;
+
+limitStatement
+    : LIMIT expression
+    | LIMIT expression CHAR_COMMA expression
+    ;
+
+windowStatement
+    : WINDOW valObject aggregate
+    | WINDOW expression WITH valObject aggregate
+    ;
+
+returnStatement
+    : RETURN distinctExpression
+    ;
+
+inOrIntoCollection
+    : IN inOrOutCollectionName
+    | INTO inOrOutCollectionName
+    ;
+
+removeStatement
+    : REMOVE expression inOrIntoCollection statementOptions
+    ;
+
+insertStatement
+    : INSERT expression inOrIntoCollection statementOptions
+    ;
+
+updateParameters
+    : expression inOrIntoCollection statementOptions
+    | expression WITH expression inOrIntoCollection statementOptions
+    ;
+
+updateStatement
+    : UPDATE updateParameters
+    ;
+
+replaceParameters
+    : expression inOrIntoCollection statementOptions
+    | expression WITH expression inOrIntoCollection statementOptions
+    ;
+
+replaceStatement
+    : REPLACE replaceParameters
+    ;
+
+updateOrReplace
+    : UPDATE
+    | REPLACE
+    ;
+
+upsertStatement
+    : UPSERT expression INSERT expression updateOrReplace expression inOrIntoCollection statementOptions
+    ;
+
+quantifier
+    : ALL
+    | ANY
+    | NONE
+    ;
+
+distinctExpression
+    : DISTINCT expression
+    | expression
+    ;
+
+expression
+    : OP_ADD expression
+    | OP_SUB expression
+    | OP_NOT expression
+    | expression OP_OR expression
+    | expression OP_AND expression
+    | expression OP_ADD expression
+    | expression OP_SUB expression
+    | expression OP_MUL expression
+    | expression OP_DIV expression
+    | expression OP_MOD expression
+    | expression OP_EQ expression
+    | expression OP_NE expression
+    | expression OP_LT expression
+    | expression OP_GT expression
+    | expression OP_LE expression
+    | expression OP_GE expression
+    | expression OP_IN expression
+    | expression OP_NOT_IN expression
+    | expression OP_NOT_LIKE expression
+    | expression OP_NOT OP_MATCHES_REGEXP expression
+    | expression OP_NOT OP_DOESNT_MATCH_REGEXP expression
+    | expression OP_LIKE expression
+    | expression OP_MATCHES_REGEXP expression
+    | expression OP_DOESNT_MATCH_REGEXP expression
+    | expression quantifier OP_EQ expression
+    | expression quantifier OP_NE expression
+    | expression quantifier OP_LT expression
+    | expression quantifier OP_GT expression
+    | expression quantifier OP_LE expression
+    | expression quantifier OP_GE expression
+    | expression quantifier OP_IN expression
+    | expression quantifier OP_NOT_IN expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_EQ expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_LT expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_NE expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_GT expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_LE expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_GE expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_IN expression
+    | expression AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR OP_NOT_IN expression
+    | expression OP_TERNARY_IF expression OP_TERNARY_ELSE expression
+    | expression OP_TERNARY_IF OP_TERNARY_ELSE expression
+    | valLiteral
+    | reference
+    | expression OP_RANGE expression
+    ;
+
+funcName
+    : valIdentifier (OP_SCOPE valIdentifier)*
+    ;
+
+funcCall
+    : funcName CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
+    | LIKE CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
+    ;
+
+optionalFuncCallParams
+    : /* empty */
+    | expressionOrQuery (CHAR_COMMA expressionOrQuery)*
+    ;
+
+expressionOrQuery
+    : expression
+    | query
+    ;
+
+optionalArrayElems
+    : /* empty */
+    | expression (CHAR_COMMA expression)* CHAR_COMMA?
+    ;
+
+forOptions
+    : /* empty */
+    | valIdentifier expression
+    | valIdentifier expression valIdentifier expression
+    ;
+
+statementOptions
+    : /* empty */
+    | valIdentifier valObject
+    ;
+
+optionalObjectElems
+    : /* empty */
+    | objectElem (CHAR_COMMA objectElem)*
+    ;
+
+objectElem
+    : valIdentifier
+    | objectElement CHAR_COLON expression
+    | valBindParameter CHAR_COLON expression
+    | CHAR_L_BR expression CHAR_R_BR CHAR_COLON expression
+    ;
+
+arrayFilterOperator
+    : CHAR_QUESTION_MARK
+    | arrayFilterOperator CHAR_QUESTION_MARK
+    ;
+
+arrayMapOperator
+    : CHAR_ASTERISK
+    | arrayMapOperator CHAR_ASTERISK
+    ;
+
+optionalArrayFilter
+    : /* empty */
+    | FILTER expression
+    | quantifier FILTER expression
+    | AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR FILTER expression
+    | expression FILTER expression
+    ;
+
+optionalArrayLimit
+    : /* empty */
+    | LIMIT expression
+    | LIMIT expression CHAR_COMMA expression
+    ;
+
+optionalArrayReturn
+    : /* empty */
+    | RETURN expression
+    ;
+
+graphCollection
+    : valIdentifier
+    | valAnyBindParameter
+    | graphDirection valIdentifier
+    | graphDirection valAnyBindParameter
+    ;
+
+graphSubject
+    : graphCollection
+    | graphCollection (CHAR_COMMA graphCollection)*
+    | GRAPH valAnyBindParameter
+    | GRAPH VAL_STRING
+    | GRAPH valIdentifier
+    ;
+
+graphDirection
+    : OUTBOUND
+    | INBOUND
+    | ANY
+    ;
+
+graphDirectionSteps
+    : graphDirection
+    | expression graphDirection
+    ;
+
+reference
+    : valIdentifier
+    | valCompound
+    | valAnyBindParameter
+    | funcCall
+    | CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR
+    | CHAR_L_ROUND_BR query CHAR_R_ROUND_BR
+    | reference CHAR_DOT valIdentifier
+    | reference CHAR_DOT valAnyBindParameter
+    | reference CHAR_L_BR expression CHAR_R_BR
+    | reference CHAR_L_BR arrayFilterOperator optionalArrayFilter CHAR_R_BR
+    | reference CHAR_L_BR arrayMapOperator optionalArrayFilter optionalArrayLimit optionalArrayReturn CHAR_R_BR
+    ;
+
+inOrOutCollectionName
+    : valIdentifier
+    | VAL_STRING
+    | valBindDataSourceParameter
+    ;
+
+objectElement
+    : valIdentifier
+    | VAL_STRING;
+
+varName
+    : valString
+    ;
 // ################################################################
-forOptions :
-    OPTIONS CHAR_L_CUR_BR forOptKeysVals CHAR_R_CUR_BR
-;
-forIn :
-    identifier
-    | array
-;
-forStatements :
-    forLoop
-    | (forFilter? forReturn)
-;
-forReturn :
-    RETURN
-    dottableIdentifiers
-    | (CHAR_L_CUR_BR
-            (VAL_STRING CHAR_COLON mathExpr (CHAR_COMMA VAL_STRING CHAR_COLON mathExpr)*)?
-        CHAR_R_CUR_BR)
+// VALUES
+// ################################################################
+valAnyBindParameter
+    : valBindDataSourceParameter
+    | valBindParameter
+    ;
 
-;
-forFilter :
-    FILTER dottableIdentifiers
-;
+valBindParameter
+    : CHAR_AT_SIGN valIdentifier
+    ;
 
-insertInto :
-    INTO identifier
-;
-insertKeysVals :
-    insertKeyVal (CHAR_COMMA insertKeyVal)*
-;
-insertKeyVal :
-    identifier CHAR_COLON value
-;
-// ForLoop options ################################################################
-forOptKeysVals :
-    forOptKeyVal (CHAR_COMMA forOptKeyVal)*
-;
-forOptKeyVal :
-    (forOptIndexHintKey CHAR_COLON forOptIndexHintVal)
-    | (forOptForceIndexHintKey CHAR_COLON forOptForceIndexHintVal)
-    | (forOptDisableIndexKey CHAR_COLON forOptDisableIndexVal)
-    | (forOptMaxProjectionsKey CHAR_COLON forOptMaxProjectionsVal)
-    | (forOptUseCacheKey CHAR_COLON forOptUseCacheVal)
-    | (forOptLookaheadKey CHAR_COLON forOptLookaheadVal)
-;
-forOptIndexHintKey :
-    INDEX_HINT
-;
-forOptForceIndexHintKey :
-    FORCE_INDEX_HINT
-;
-forOptDisableIndexKey :
-    DISABLE_INDEX
-;
-forOptMaxProjectionsKey :
-    MAX_PROJECTIONS
-;
-forOptUseCacheKey :
-    USE_CACHE
-;
-forOptLookaheadKey :
-    LOOKAHEAD
-;
-forOptIndexHintVal :
-    valueString | arrayString
-;
-forOptForceIndexHintVal :
-    valueBool
-;
-forOptDisableIndexVal :
-    valueBool
-;
-forOptMaxProjectionsVal :
-    valueUint
-;
-forOptUseCacheVal :
-    valueBool
-;
-forOptLookaheadVal :
-    valueUint
-;
-// Values ################################################################
-array :
-    CHAR_L_BR (value (CHAR_COMMA value)*)? CHAR_R_BR
-;
-arrayString :
-    CHAR_L_BR (valueString (CHAR_COMMA valueString)*)? CHAR_R_BR
-;
-dottableIdentifiers :
-    identifier (CHAR_DOT identifier)*
-;
-identifier :
-    VAL_IDENTIFIER
-;
-value :
-    valueString valueFloat
-;
-valueString :
-    VAL_STRING
-;
-valueFloat :
-    VAL_FLOAT
-;
-valueInt :
-    VAL_INT
-;
-valueUint :
-    VAL_UINT
-;
-valueBool :
-    VAL_BOOL
-;
-// Functions ################################################################
-funcCall :
-    identifier CHAR_L_BR identifier* CHAR_R_BR
-;
-// Math ################################################################
-mathExpr :
-    mathAdd
-;
-mathAdd :
-    mathMult (mathOpAdd mathMult)*
-;
-mathMult :
-    mathGroup (mathOpMult mathGroup)*
-;
-mathGroup :
-    (VAL_FLOAT)
-    | (dottableIdentifiers)
-    | (funcCall)
-    | (CHAR_L_BR mathExpr CHAR_R_BR)
-;
-mathOpMult :
-    CHAR_ASTERISK | CHAR_SLASH
-;
-mathOpAdd :
-    CHAR_MINUS | CHAR_PLUS
-;
+valBindDataSourceParameter
+    : CHAR_AT_SIGN CHAR_AT_SIGN valIdentifier
+    ;
+
+valIdentifier
+    : VAL_IDENTIFIER
+    ;
+
+valString
+    : VAL_STRING
+    ;
+
+valNumber
+    : VAL_INT
+    | VAL_FLOAT
+    ;
+
+valFloat
+    : VAL_FLOAT
+    ;
+
+valInt
+    : VAL_INT
+    ;
+
+valUint
+    : VAL_UINT
+    ;
+
+valBool
+    : VAL_BOOL
+    ;
+
+valObject
+    : CHAR_L_CUR_BR optionalObjectElems CHAR_R_CUR_BR
+    ;
+
+valCompound
+    : valArray
+    | valObject
+    ;
+
+valSimple
+    : valLiteral
+    | valAnyBindParameter
+    ;
+
+valArray
+    : CHAR_L_BR optionalArrayElems CHAR_R_BR
+    ;
+
+valLiteral
+    : VAL_STRING
+    | valNumber
+    | NULL
+    | TRUE
+    | FALSE
+    ;

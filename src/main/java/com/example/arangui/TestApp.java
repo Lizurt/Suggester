@@ -56,7 +56,7 @@ public class TestApp {
             ArangoLexerRules lexer = new ArangoLexerRules(charStream);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             ArangoParserRules parser = new ArangoParserRules(tokens, true);
-            ArangoParserRules.QueryContext queryContext = parser.query();
+            ArangoParserRules.QueryStartContext queryContext = parser.queryStart();
             System.out.println(queryContext.toStringTree());
 
             ArangoQueryDefaultAnalyser arangoQueryDefaultAnalyser = new ArangoQueryDefaultAnalyser();
@@ -64,15 +64,12 @@ public class TestApp {
             for (String hint : arangoQueryDefaultAnalyser.getHints(queryContext)) {
                 System.out.println("    " + hint);
             }
-            boolean a = true;
-            boolean b = false;
-            boolean c = false;
-            boolean d = (a == b ? true : false) || false;
         }
     }
 
     private static void testAST() {
-        CharStream in = CharStreams.fromString("INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt");
+        String s = "INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt";
+        CharStream in = CharStreams.fromString(s);
         ArangoLexerRules lexer = new ArangoLexerRules(in);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         ArangoParserRules parser = new ArangoParserRules(tokens);
@@ -81,7 +78,6 @@ public class TestApp {
         String baseG4Path = "src/main/antlr/";
         File fParser = new File(baseG4Path + "ArangoParserRules.g4");
         File fLexer = new File(baseG4Path + "ArangoLexerRules.g4");
-        String s = "INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt";
         try {
             GenericParser gp = new GenericParser(fLexer, fParser);
             DefaultTreeListener defaultTreeListener = new DefaultTreeListener();
