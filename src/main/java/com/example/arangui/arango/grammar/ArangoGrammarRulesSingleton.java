@@ -8,22 +8,20 @@ import org.antlr.v4.tool.Rule;
 import org.antlr.v4.tool.ast.*;
 
 import java.util.*;
-import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 
-public class AranagoGrammarRulesSingleton implements RuleGrammarASTVisitor {
+public class ArangoGrammarRulesSingleton implements RuleGrammarASTVisitor {
 
     // region instance stuff
 
     private static class InstanceHolder {
-        private static final AranagoGrammarRulesSingleton instance = new AranagoGrammarRulesSingleton();
+        private static final ArangoGrammarRulesSingleton instance = new ArangoGrammarRulesSingleton();
     }
 
-    private AranagoGrammarRulesSingleton() {
+    private ArangoGrammarRulesSingleton() {
         init();
     }
 
-    public static AranagoGrammarRulesSingleton getInstance() {
+    public static ArangoGrammarRulesSingleton getInstance() {
         return InstanceHolder.instance;
     }
 
@@ -32,8 +30,8 @@ public class AranagoGrammarRulesSingleton implements RuleGrammarASTVisitor {
     private final String antlrGeneratedClassesDirectoryPath
             = System.getProperty("user.dir") + "/build/generated-src/antlr/main/com/example/arangui/antlr";
 
-    private final String antlrParserGrammarFilePath = "src/main/antlr/ArangoParserRules.g4";
-    private final String antlrLexerGrammarFilePath = "src/main/antlr/ArangoLexerRules.g4";
+    private final String antlrParserGrammarFilePath = "src/main/antlr/TheParser.g4";
+    private final String antlrLexerGrammarFilePath = "src/main/antlr/TheLexer.g4";
 
     private Grammar parserGrammar;
 

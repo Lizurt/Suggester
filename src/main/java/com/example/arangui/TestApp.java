@@ -2,11 +2,15 @@ package com.example.arangui;
 
 import com.example.arangui.antlr.ArangoLexerRules;
 import com.example.arangui.antlr.ArangoParserRules;
-import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
-import com.github.curiousoddman.rgxgen.RgxGen;
+import com.example.arangui.arango.grammar.ArangoGrammarRulesSingleton;
+import com.example.arangui.arango.hints.ArangoQueryDefaultAnalyser;
+import com.example.autosuggest.AutoSuggester;
+import com.example.autosuggest.LexerAndParserFactory;
+import com.example.autosuggest.ReflectionLexerAndParserFactory;
 import org.antlr.runtime.tree.Tree;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.tool.Rule;
+import org.antlr.v4.runtime.atn.RuleStartState;
+import org.antlr.v4.tool.DOTGenerator;
 import org.snt.inmemantlr.GenericParser;
 import org.snt.inmemantlr.exceptions.CompilationException;
 import org.snt.inmemantlr.exceptions.IllegalWorkflowException;
@@ -16,28 +20,99 @@ import org.snt.inmemantlr.tree.ParseTree;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Map;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.*;
 
 public class TestApp {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (true) {
-            testAutocompletionHints();
+            DOTGenerator dotGenerator = new DOTGenerator(ArangoGrammarRulesSingleton.getInstance().getLexerGrammar());
+            FileWriter fw = new FileWriter("lexer.dot");
+            fw.write("digraph ATN { rankdir=LR;");
+            for (RuleStartState ruleStartState : ArangoGrammarRulesSingleton.getInstance().getLexerGrammar().atn.ruleToStartState) {
+                String dot = dotGenerator.getDOT(ruleStartState);
+                dot = dot.replace("digraph ATN {", "");
+                dot = dot.replace("rankdir=LR;", "");
+                dot = dot.substring(0, dot.length() - 1);
+                fw.append(dot);
+            }
+            fw.append("}");
+            fw.close();
+        }
+        if (true) {
+            DOTGenerator dotGenerator = new DOTGenerator(ArangoGrammarRulesSingleton.getInstance().getParserGrammar());
+            FileWriter fw = new FileWriter("parser.dot");
+            fw.write("digraph ATN { rankdir=LR;");
+            for (RuleStartState ruleStartState : ArangoGrammarRulesSingleton.getInstance().getParserGrammar().atn.ruleToStartState) {
+                String dot = dotGenerator.getDOT(ruleStartState);
+                dot = dot.replace("digraph ATN {", "");
+                dot = dot.replace("rankdir=LR;", "");
+                dot = dot.substring(0, dot.length() - 1);
+                fw.append(dot);
+            }
+            fw.append("}");
+            fw.close();
+        }
+        if (true) {
+            LexerAndParserFactory lexerAndParserfactory = new ReflectionLexerAndParserFactory(
+                    the.grammar.TheLexer.class, the.grammar.TheParser.class
+            );
+            Collection<String> suggestions = new AutoSuggester(lexerAndParserfactory, "he").suggestCompletions();
+            System.out.println("$$$$$$$$ SUGGESTIONS: ");
+            for (String s : suggestions) {
+                System.out.println(s);
+            }
+            return;
         }
         if (false) {
+            System.out.println("----------------------------");
             testAST();
         }
-        if (true) {
+        if (false) {
+            System.out.println("----------------------------");
             testGrammarAST();
         }
-        AranagoGrammarRulesSingleton.getInstance().initRegexpsByNames();
+        if (false) {
+            System.out.println("----------------------------");
+            for (Map.Entry<String, Set<String>> a : ArangoGrammarRulesSingleton.getInstance().getLexerRegexpsByNames().entrySet()) {
+                System.out.println(a.getKey() + " <=> " + a.getValue());
+            }
+        }
+        if (false) {
+            System.out.println("----------------------------");
+            testAutocompletionHints();
+        }
     }
 
     private static void testAutocompletionHints() {
+        Scanner scanner = new Scanner(System.in);
+        String line;
+        while (true) {
+            System.out.println("> ");
+            line = scanner.nextLine();
+            if (line.equals("exit")) {
+                return;
+            }
 
+            CharStream charStream = CharStreams.fromString(line);
+            ArangoLexerRules lexer = new ArangoLexerRules(charStream);
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            ArangoParserRules parser = new ArangoParserRules(tokens, true);
+            ArangoParserRules.QueryStartContext queryContext = parser.queryStart();
+            System.out.println(queryContext.toStringTree());
+
+            ArangoQueryDefaultAnalyser arangoQueryDefaultAnalyser = new ArangoQueryDefaultAnalyser();
+            System.out.println("Options are:");
+            for (String hint : arangoQueryDefaultAnalyser.getHints(queryContext)) {
+                System.out.println("    " + hint);
+            }
+        }
     }
 
     private static void testAST() {
-        CharStream in = CharStreams.fromString("INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt");
+        String s = "INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt";
+        CharStream in = CharStreams.fromString(s);
         ArangoLexerRules lexer = new ArangoLexerRules(in);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         ArangoParserRules parser = new ArangoParserRules(tokens);
@@ -46,7 +121,6 @@ public class TestApp {
         String baseG4Path = "src/main/antlr/";
         File fParser = new File(baseG4Path + "ArangoParserRules.g4");
         File fLexer = new File(baseG4Path + "ArangoLexerRules.g4");
-        String s = "INSerT {str: \" dasd dt } {}{{[]'4.512 \", num: -3.14 } INTO testt";
         try {
             GenericParser gp = new GenericParser(fLexer, fParser);
             DefaultTreeListener defaultTreeListener = new DefaultTreeListener();
@@ -67,27 +141,18 @@ public class TestApp {
 
     private static void testGrammarAST() {
         System.out.println(toStringTree(
-                AranagoGrammarRulesSingleton.getInstance().getParserGrammar().ast,
+                ArangoGrammarRulesSingleton.getInstance().getParserGrammar().ast,
                 0,
                 new StringBuilder()
         ));
         System.out.println("================================================================");
         System.out.println(toStringTree(
-                AranagoGrammarRulesSingleton.getInstance().getLexerGrammar().ast,
+                ArangoGrammarRulesSingleton.getInstance().getLexerGrammar().ast,
                 0,
                 new StringBuilder()
         ));
     }
 
-    public static String toStringTree(Map<String, Rule> rulesByNames, int level, StringBuilder buf) {
-        for (Map.Entry<String, Rule> ruleByName : rulesByNames.entrySet()) {
-            buf.append(ruleByName.getKey());
-            //toStringTree(ruleByName.getValue(), 1, buf);
-            //ruleByName.getValue()
-        }
-
-        return buf.toString();
-    }
     public static String toStringTree(Tree node, int level, StringBuilder buf) {
         buf.append("\n");
         buf.append("  ".repeat(level));
