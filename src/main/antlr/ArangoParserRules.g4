@@ -7,7 +7,7 @@ options {
 
     import java.util.*;
     import org.antlr.v4.tool.Rule;
-    import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
+    import com.example.arangui.arango.grammar.ArangoGrammarRulesSingleton;
 }
 @parser::members {
     public final static int CONTEXT_POSTFIX_LENGTH = 7;
@@ -31,12 +31,12 @@ options {
             // the first symbol was camelCased already, so we start from a 2nd char.
             // We also need to remove the "Context" postfix
             contextClassName += rawContextClassName.substring(1, rawContextClassName.length() - CONTEXT_POSTFIX_LENGTH);
-            if (!AranagoGrammarRulesSingleton.getInstance().getParserRulesByNames().containsKey(contextClassName)) {
+            if (!ArangoGrammarRulesSingleton.getInstance().getParserRulesByNames().containsKey(contextClassName)) {
                 throw new RuntimeException("Cannot find a parser rule by such context class name: \""
                     + contextClassName + "\"."
                 );
             }
-            Rule parserRule = AranagoGrammarRulesSingleton.getInstance().getParserRulesByNames().get(contextClassName);
+            Rule parserRule = ArangoGrammarRulesSingleton.getInstance().getParserRulesByNames().get(contextClassName);
             rulesByContextClasses.put((Class<? extends ParseTree>) contextClass, parserRule);
         }
     }
@@ -46,7 +46,15 @@ options {
     }
 }
 
-optionalPruneVariable
+queryStart
+    : with? query
+    ;
+
+query
+    : statement+
+    ;
+
+pruneVar
     : expression
     | varName OP_ASSIGN expression
     ;
@@ -56,17 +64,8 @@ withCollection
     | valAnyBindParameter
     ;
 
-optionalWith
-    : /* empty */
-    | WITH withCollection (CHAR_COMMA withCollection)*
-    ;
-
-queryStart
-    : optionalWith query EOF
-    ;
-
-query
-    : statament* finalStatement
+with
+    : WITH withCollection (CHAR_COMMA withCollection)*
     ;
 
 finalStatement
@@ -78,7 +77,7 @@ finalStatement
     | upsertStatement
     ;
 
-statament
+statement
     : forStatement
     | letStatement
     | filterStatement
@@ -98,9 +97,8 @@ forOutputVars
     ;
 
 pruneAndOptions
-    : /* empty */
-    | valIdentifier optionalPruneVariable
-    | valIdentifier optionalPruneVariable valIdentifier valObject
+    : valIdentifier pruneVar
+    | valIdentifier pruneVar valIdentifier valObject
     ;
 
 traversalGraphInfo
@@ -108,24 +106,24 @@ traversalGraphInfo
     ;
 
 shortestGraphInfo
-    : graphDirection SHORTEST_PATH expression valIdentifier expression graphSubject statementOptions
+    : graphDirection SHORTEST_PATH expression valIdentifier expression graphSubject statementOptions?
     ;
 
 kShortestPathsGraphInfo
-    : graphDirection K_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions
+    : graphDirection K_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions?
     ;
 
 kPathsGraphInfo
-    : graphDirectionSteps K_PATHS expression valIdentifier expression graphSubject statementOptions
+    : graphDirectionSteps K_PATHS expression valIdentifier expression graphSubject statementOptions?
     ;
 
 allShortestPathsGraphInfo
-    : graphDirection ALL_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions
+    : graphDirection ALL_SHORTEST_PATHS expression valIdentifier expression graphSubject statementOptions?
     ;
 
 forStatement
-    : FOR forOutputVars IN expression forOptions
-    | FOR forOutputVars IN traversalGraphInfo pruneAndOptions
+    : FOR forOutputVars IN expression forOptions?
+    | FOR forOutputVars IN traversalGraphInfo pruneAndOptions?
     | FOR forOutputVars IN shortestGraphInfo
     | FOR forOutputVars IN kShortestPathsGraphInfo
     | FOR forOutputVars IN kPathsGraphInfo
@@ -153,21 +151,20 @@ collectVarList
     ;
 
 collectStatement
-    : COLLECT countInto statementOptions
-    | collectVarList countInto statementOptions
-    | COLLECT aggregate collectOptionalInto statementOptions
-    | collectVarList aggregate collectOptionalInto statementOptions
-    | collectVarList collectOptionalInto statementOptions
-    | collectVarList collectOptionalInto keep statementOptions
+    : COLLECT countInto statementOptions?
+    | collectVarList countInto statementOptions?
+    | COLLECT aggregate collectInto? statementOptions?
+    | collectVarList aggregate collectInto? statementOptions?
+    | collectVarList collectInto? statementOptions?
+    | collectVarList collectInto? keep statementOptions?
     ;
 
 collectElement
     : varName OP_ASSIGN expression
     ;
 
-collectOptionalInto
-    : /* empty */
-    | INTO varName
+collectInto
+    : INTO varName
     | INTO varName OP_ASSIGN expression
     ;
 
@@ -184,7 +181,7 @@ aggregateElement
     ;
 
 aggregateFunctionCall
-    : funcName CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
+    : funcName CHAR_L_ROUND_BR funcCallParams? CHAR_R_ROUND_BR
     ;
 
 sortStatement
@@ -192,12 +189,11 @@ sortStatement
     ;
 
 sortElement
-    : expression sortDirection
+    : expression sortDirection?
     ;
 
 sortDirection
-    : /* empty */
-    | ASC
+    : ASC
     | DESC
     | valSimple
     ;
@@ -222,16 +218,16 @@ inOrIntoCollection
     ;
 
 removeStatement
-    : REMOVE expression inOrIntoCollection statementOptions
+    : REMOVE expression inOrIntoCollection statementOptions?
     ;
 
 insertStatement
-    : INSERT expression inOrIntoCollection statementOptions
+    : INSERT expression inOrIntoCollection statementOptions?
     ;
 
 updateParameters
-    : expression inOrIntoCollection statementOptions
-    | expression WITH expression inOrIntoCollection statementOptions
+    : expression inOrIntoCollection statementOptions?
+    | expression WITH expression inOrIntoCollection statementOptions?
     ;
 
 updateStatement
@@ -239,8 +235,8 @@ updateStatement
     ;
 
 replaceParameters
-    : expression inOrIntoCollection statementOptions
-    | expression WITH expression inOrIntoCollection statementOptions
+    : expression inOrIntoCollection statementOptions?
+    | expression WITH expression inOrIntoCollection statementOptions?
     ;
 
 replaceStatement
@@ -253,7 +249,7 @@ updateOrReplace
     ;
 
 upsertStatement
-    : UPSERT expression INSERT expression updateOrReplace expression inOrIntoCollection statementOptions
+    : UPSERT expression INSERT expression updateOrReplace expression inOrIntoCollection statementOptions?
     ;
 
 quantifier
@@ -320,13 +316,12 @@ funcName
     ;
 
 funcCall
-    : funcName CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
-    | LIKE CHAR_L_ROUND_BR optionalFuncCallParams CHAR_R_ROUND_BR
+    : funcName CHAR_L_ROUND_BR funcCallParams? CHAR_R_ROUND_BR
+    | LIKE CHAR_L_ROUND_BR funcCallParams? CHAR_R_ROUND_BR
     ;
 
-optionalFuncCallParams
-    : /* empty */
-    | expressionOrQuery (CHAR_COMMA expressionOrQuery)*
+funcCallParams
+    : expressionOrQuery (CHAR_COMMA expressionOrQuery)*
     ;
 
 expressionOrQuery
@@ -334,25 +329,21 @@ expressionOrQuery
     | query
     ;
 
-optionalArrayElems
-    : /* empty */
-    | expression (CHAR_COMMA expression)* CHAR_COMMA?
+arrayElems
+    : expression (CHAR_COMMA expression)* CHAR_COMMA?
     ;
 
 forOptions
-    : /* empty */
-    | valIdentifier expression
+    : valIdentifier expression
     | valIdentifier expression valIdentifier expression
     ;
 
 statementOptions
-    : /* empty */
-    | valIdentifier valObject
+    : OPTIONS valObject
     ;
 
-optionalObjectElems
-    : /* empty */
-    | objectElem (CHAR_COMMA objectElem)*
+objectElems
+    : objectElem (CHAR_COMMA objectElem)*
     ;
 
 objectElem
@@ -372,23 +363,20 @@ arrayMapOperator
     | arrayMapOperator CHAR_ASTERISK
     ;
 
-optionalArrayFilter
-    : /* empty */
-    | FILTER expression
+arrayFilter
+    : FILTER expression
     | quantifier FILTER expression
     | AT_LEAST CHAR_L_ROUND_BR expression CHAR_R_ROUND_BR FILTER expression
     | expression FILTER expression
     ;
 
-optionalArrayLimit
-    : /* empty */
-    | LIMIT expression
+arrayLimit
+    : LIMIT expression
     | LIMIT expression CHAR_COMMA expression
     ;
 
-optionalArrayReturn
-    : /* empty */
-    | RETURN expression
+arrayReturn
+    : RETURN expression
     ;
 
 graphCollection
@@ -427,8 +415,8 @@ reference
     | reference CHAR_DOT valIdentifier
     | reference CHAR_DOT valAnyBindParameter
     | reference CHAR_L_BR expression CHAR_R_BR
-    | reference CHAR_L_BR arrayFilterOperator optionalArrayFilter CHAR_R_BR
-    | reference CHAR_L_BR arrayMapOperator optionalArrayFilter optionalArrayLimit optionalArrayReturn CHAR_R_BR
+    | reference CHAR_L_BR arrayFilterOperator arrayFilter? CHAR_R_BR
+    | reference CHAR_L_BR arrayMapOperator arrayFilter? arrayLimit? arrayReturn? CHAR_R_BR
     ;
 
 inOrOutCollectionName
@@ -490,7 +478,7 @@ valBool
     ;
 
 valObject
-    : CHAR_L_CUR_BR optionalObjectElems CHAR_R_CUR_BR
+    : CHAR_L_CUR_BR objectElems? CHAR_R_CUR_BR
     ;
 
 valCompound
@@ -504,7 +492,7 @@ valSimple
     ;
 
 valArray
-    : CHAR_L_BR optionalArrayElems CHAR_R_BR
+    : CHAR_L_BR arrayElems? CHAR_R_BR
     ;
 
 valLiteral

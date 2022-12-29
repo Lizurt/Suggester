@@ -1,4 +1,5 @@
 plugins {
+
     id 'java'
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.0.10'
@@ -46,6 +47,12 @@ dependencies {
     implementation 'com.github.julianthome:inmemantlr-api:1.9.2'
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
+
+    implementation 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+    testImplementation 'org.projectlombok:lombok:1.18.24'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 }
 
 test {

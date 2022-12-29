@@ -1,10 +1,9 @@
 package com.example.arangui.arango.hints;
 
 import com.example.arangui.antlr.ArangoParserRules;
-import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
+import com.example.arangui.arango.grammar.ArangoGrammarRulesSingleton;
 import com.github.curiousoddman.rgxgen.RgxGen;
 import org.antlr.runtime.tree.Tree;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -17,6 +16,7 @@ import java.util.*;
 
 public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
     public final static Random HINTS_GENERATOR_RANDOM = new Random(123456789);
+    public final static String EOF_NODE_TEXT = "<EOF>";
 
     public List<String> getHints(ParseTree contextNode) {
         ParseTree lastDeepestNode = getLastDeepestNode(contextNode);
@@ -75,7 +75,7 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
         List<String> hints = new ArrayList<>();
         for (Tree node : rawHints) {
             Set<String> regexpsForTheNode =
-                    AranagoGrammarRulesSingleton.getInstance().getLexerRegexpsByNames().get(node.getText());
+                    ArangoGrammarRulesSingleton.getInstance().getLexerRegexpsByNames().get(node.getText());
             for (String regexp : regexpsForTheNode) {
                 RgxGen rgxGen = new RgxGen(regexp);
                 if (rgxGen.getUniqueEstimation().isEmpty()) {
@@ -166,7 +166,7 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
                     // we don't know in which rule we currently are, we only know "it could be in this node",
                     // but this node is actually a reference, so let's check it instead
                     hintableNodes.addAll(getFirstHintableNodesInRule(
-                            AranagoGrammarRulesSingleton.getInstance().getParserRulesByNames().get(child.toString())
+                            ArangoGrammarRulesSingleton.getInstance().getParserRulesByNames().get(child.toString())
                     ));
                     break;
                 }
@@ -196,6 +196,9 @@ public class ArangoQueryDefaultAnalyser implements ArangoQueryAnalyser {
             return parent;
         }
         ParseTree node = parent.getChild(parent.getChildCount() - 1);
+        if (parent.getChildCount() > 1 && node.getText().equals(EOF_NODE_TEXT)) {
+            node = parent.getChild(parent.getChildCount() - 2);
+        }
         while (node.getChildCount() > 0) {
             node = node.getChild(node.getChildCount() - 1);
         }

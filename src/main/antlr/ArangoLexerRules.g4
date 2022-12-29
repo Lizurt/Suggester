@@ -1,6 +1,6 @@
-lexer grammar ArangoLexerRules    ; 
+lexer grammar ArangoLexerRules;
 @header {
-    package com.example.arangui.antlr    ; 
+    package com.example.arangui.antlr;
 }
 
 // ################################################################
@@ -361,7 +361,7 @@ OP_SCOPE
     ; 
 // Misc ################################################################
 IGNORED_COMMENT 
-    : (CHAR_SLASH CHAR_SLASH VAL_ANY_CHAR IGNORED_NL) -> skip
+    : (CHAR_SLASH CHAR_SLASH VAL_ANY_CHAR (IGNORED_NL | EOF)) -> skip
     ; 
 IGNORED_MULTILINE_COMMENT 
     : (CHAR_SLASH CHAR_ASTERISK VAL_ANY_CHAR CHAR_ASTERISK CHAR_SLASH) -> skip
