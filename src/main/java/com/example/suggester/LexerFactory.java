@@ -1,4 +1,4 @@
-package com.example.autosuggest;
+package com.example.suggester;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
