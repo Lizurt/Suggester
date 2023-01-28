@@ -1,12 +1,12 @@
-package com.example.autosuggest;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
+package com.example.suggester;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.TokenStream;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 public class ReflectionLexerAndParserFactory implements LexerAndParserFactory {
 

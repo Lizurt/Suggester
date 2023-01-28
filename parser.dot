@@ -6,7 +6,7 @@ s8[fontsize=11,label="8", shape=circle, fixedsize=true, width=.55, peripheries=1
 s9[fontsize=11,label="9", shape=circle, fixedsize=true, width=.55, peripheries=1];
 s10[fontsize=11,label="10", shape=circle, fixedsize=true, width=.55, peripheries=1];
 s0 -> s8 [fontname="Times-Italic", label="&epsilon;"];
-s8 -> s9 [fontsize=11, fontname="Courier", arrowsize=.7, label = "HELLO", arrowhead = normal];
+s8 -> s9 [fontsize=11, fontname="Courier", arrowsize=.7, label = "{HELLO, WORK}", arrowhead = normal];
 s9 -> s10 [fontsize=11, fontname="Courier", arrowsize=.7, label = "<who>", arrowhead = normal];
 s10 -> s1 [fontname="Times-Italic", label="&epsilon;"];
 

@@ -1,8 +1,7 @@
-package com.example.autosuggest;
+package com.example.suggester;
 
 // todo: i guess we can do suggesting without recursion. Might try use stacks
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**

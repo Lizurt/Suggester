@@ -7,7 +7,7 @@ options {
     tokenVocab = TheLexer;
 }
 
-hello_world : HELLO who;
+hello_world : (HELLO | WORK) who;
 
 who : (world | lizurt)*;
 
