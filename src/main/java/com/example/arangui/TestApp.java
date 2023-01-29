@@ -5,6 +5,7 @@ import com.example.arangui.antlr.ArangoParserRules;
 import com.example.arangui.arango.grammar.ArangoGrammarRulesSingleton;
 import com.example.arangui.arango.hints.ArangoQueryDefaultAnalyser;
 import com.example.suggester.AutoSuggester;
+import com.example.suggester.CasePreference;
 import com.example.suggester.LexerAndParserFactory;
 import com.example.suggester.ReflectionLexerAndParserFactory;
 import org.antlr.runtime.tree.Tree;
@@ -58,8 +59,9 @@ public class TestApp {
             LexerAndParserFactory lexerAndParserfactory = new ReflectionLexerAndParserFactory(
                     the.grammar.TheLexer.class, the.grammar.TheParser.class
             );
-            Collection<String> suggestions = new AutoSuggester(lexerAndParserfactory)
-                    .generateAndGetSuggestions("hello ");
+            AutoSuggester autoSuggester = new AutoSuggester(lexerAndParserfactory);
+            autoSuggester.setCasePreference(CasePreference.LOWER);
+            Collection<String> suggestions = autoSuggester.generateAndGetSuggestions("hello");
             System.out.println("$$$$$$$$ SUGGESTIONS: ");
             for (String s : suggestions) {
                 System.out.println(s);

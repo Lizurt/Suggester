@@ -2,21 +2,26 @@ package com.example.suggester;
 
 import java.util.*;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.apache.commons.lang3.NotImplementedException;
 
 public class AutoSuggester {
     private final ParserWrapper parserWrapper;
 
     private final LexerWrapper lexerWrapper;
 
-    private CasePreference casePreference = CasePreference.BOTH;
+    @Getter
+    @Setter
+    private CasePreference casePreference = CasePreference.LAST_MET;
 
     public static int START_RULE_PARSER_STATE_INDEX = 0;
 
-    private TransitionHandler transitionHandler = new TransitionHandler();
+    private final TransitionHandler transitionHandler = new TransitionHandler();
 
     // region init stuff
 
@@ -116,14 +121,18 @@ public class AutoSuggester {
             }
         }
         StringBuilder sbCurrSuggestion = new StringBuilder();
+        // at which char in a user input we'll be checking if a new suggested char is already in the user input
+        int atInputPos = 0;
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
+        statesLoop:
         while (!lexerStatesToCheck.isEmpty()) {
             ATNState lexerState = lexerStatesToCheck.poll();
             if (lexerState instanceof RuleStopState) {
                 if (suggestableRulesStopStates.contains(lexerState)) {
                     fullSuggestions.add(sbCurrSuggestion.toString());
                     sbCurrSuggestion.setLength(0);
+                    atInputPos = 0;
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
                 continue;
@@ -138,15 +147,84 @@ public class AutoSuggester {
                 if (transitionHandlerResult.getOtherRuleReference() != null) {
                     lexerStatesToCheck.addFirst(transitionHandlerResult.getOtherRuleReference());
                 } else if (transitionHandlerResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
-                    // todo: case preferences; don't ignore user inputted text when generating suggestion
                     IntervalSet charIntervalSet = transitionHandlerResult.getParserToLexerRuleNumbersOrLexerCharInts();
-                    char newCharForSuggestion = Character.toChars(charIntervalSet.getIntervals().get(0).a)[0];
-                    sbCurrSuggestion.append(newCharForSuggestion);
+                    Character newCharForSuggestion = getCharForSuggestion(charIntervalSet);
+                    InputAndSuggestionCompareResult inputAndSuggestionCompareResult = compareInputAndSuggestion(
+                            tokenizationResult.untokenizedText,
+                            atInputPos,
+                            newCharForSuggestion
+                    );
+                    switch (inputAndSuggestionCompareResult) {
+                        case INAPPROPRIATE_SUGGESTION -> {
+                            sbCurrSuggestion.setLength(0);
+                            atInputPos = 0;
+                            continue statesLoop;
+                        }
+                        case APPROPRIATE_SUGGESTION -> {
+                            sbCurrSuggestion.append(newCharForSuggestion);
+                        }
+                        case SUGGESTION_ALREADY_IN_INPUT -> {
+                            atInputPos++;
+                        }
+                        default -> throw new NotImplementedException("Unknown input and suggestion compare result");
+                    }
                 }
             }
         }
 
         return fullSuggestions;
+    }
+
+    private InputAndSuggestionCompareResult compareInputAndSuggestion(
+            String userInput,
+            int atInputPos,
+            Character suggestedChar
+    ) {
+        if (userInput == null || userInput.length() <= atInputPos) {
+            return InputAndSuggestionCompareResult.APPROPRIATE_SUGGESTION;
+        }
+        if (Character.toLowerCase(userInput.charAt(atInputPos)) == Character.toLowerCase(suggestedChar)) {
+            return InputAndSuggestionCompareResult.SUGGESTION_ALREADY_IN_INPUT;
+        }
+        return InputAndSuggestionCompareResult.INAPPROPRIATE_SUGGESTION;
+    }
+
+    private Character getCharForSuggestion(IntervalSet availableCharsIntervals) {
+        if (availableCharsIntervals.size() <= 0) {
+            return null;
+        }
+        Character result = null;
+        switch (casePreference) {
+            case FIRST_MET -> {
+                result = Character.toChars(
+                        availableCharsIntervals.getIntervals().get(0).a
+                )[0];
+            }
+            case LAST_MET -> {
+                result = Character.toChars(
+                        availableCharsIntervals.getIntervals().get(availableCharsIntervals.size() - 1).b
+                )[0];
+            }
+            case LOWER -> {
+                for (Interval interval : availableCharsIntervals.getIntervals()) {
+                    for (int val = interval.a; val <= interval.b; val++) {
+                        if (Character.isLowerCase(val)) {
+                            result = Character.toChars(val)[0];
+                        }
+                    }
+                }
+            }
+            case UPPER -> {
+                for (Interval interval : availableCharsIntervals.getIntervals()) {
+                    for (int val = interval.a; val <= interval.b; val++) {
+                        if (Character.isUpperCase(val)) {
+                            result = Character.toChars(val)[0];
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     private List<Transition> getClosestTokenConsumingTransitions(ATNState startParserState) {
