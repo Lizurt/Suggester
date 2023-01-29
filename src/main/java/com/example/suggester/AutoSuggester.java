@@ -21,7 +21,7 @@ public class AutoSuggester {
 
     public static int START_RULE_PARSER_STATE_INDEX = 0;
 
-    private final TransitionHandler transitionHandler = new TransitionHandler();
+    private final TransitionAnalyser transitionAnalyser = new TransitionAnalyser();
 
     // region init stuff
 
@@ -67,14 +67,14 @@ public class AutoSuggester {
             }
             for (int i = currParserState.getAtnState().getNumberOfTransitions() - 1; i >= 0; i--) {
                 Transition transition = currParserState.getAtnState().transition(i);
-                TransitionHandlerResult transitionHandlerResult = transitionHandler.handleTransition(
+                TransitionAnalyseResult transitionAnalyseResult = transitionAnalyser.analyseTransition(
                         transition,
                         currParserState.getAtnState(),
                         tokens,
                         currParserState.getTokenIndex()
                 );
-                if (transitionHandlerResult.isTokenMatchingPattern()) {
-                    if (transitionHandlerResult.isSupposedToConsumeToken()) {
+                if (transitionAnalyseResult.isTokenMatchingPattern()) {
+                    if (transitionAnalyseResult.isSupposedToConsumeToken()) {
                         parserStatesToCheck.addFirst(new ParserStateWithTokenIndex(
                                 transition.target,
                                 currParserState.getTokenIndex() + 1
@@ -130,7 +130,9 @@ public class AutoSuggester {
             ATNState lexerState = lexerStatesToCheck.poll();
             if (lexerState instanceof RuleStopState) {
                 if (suggestableRulesStopStates.contains(lexerState)) {
-                    fullSuggestions.add(sbCurrSuggestion.toString());
+                    if (!sbCurrSuggestion.isEmpty()) {
+                        fullSuggestions.add(sbCurrSuggestion.toString());
+                    }
                     sbCurrSuggestion.setLength(0);
                     atInputPos = 0;
                 }
@@ -139,15 +141,15 @@ public class AutoSuggester {
             }
             for (int i = lexerState.getNumberOfTransitions() - 1; i >= 0; i--) {
                 Transition transition = lexerState.transition(i);
-                TransitionHandlerResult transitionHandlerResult = transitionHandler.handleTransition(
+                TransitionAnalyseResult transitionAnalyseResult = transitionAnalyser.analyseTransition(
                         transition,
                         lexerState
                 );
-                lexerStatesToCheck.addFirst(transitionHandlerResult.getTargetState());
-                if (transitionHandlerResult.getOtherRuleReference() != null) {
-                    lexerStatesToCheck.addFirst(transitionHandlerResult.getOtherRuleReference());
-                } else if (transitionHandlerResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
-                    IntervalSet charIntervalSet = transitionHandlerResult.getParserToLexerRuleNumbersOrLexerCharInts();
+                lexerStatesToCheck.addFirst(transitionAnalyseResult.getTargetState());
+                if (transitionAnalyseResult.getOtherRuleReference() != null) {
+                    lexerStatesToCheck.addFirst(transitionAnalyseResult.getOtherRuleReference());
+                } else if (transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
+                    IntervalSet charIntervalSet = transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts();
                     Character newCharForSuggestion = getCharForSuggestion(charIntervalSet);
                     InputAndSuggestionCompareResult inputAndSuggestionCompareResult = compareInputAndSuggestion(
                             tokenizationResult.untokenizedText,
@@ -242,16 +244,16 @@ public class AutoSuggester {
             }
             for (int i = currParserState.getNumberOfTransitions() - 1; i >= 0; i--) {
                 Transition transition = currParserState.transition(i);
-                TransitionHandlerResult transitionHandlerResult = transitionHandler.handleTransition(
+                TransitionAnalyseResult transitionAnalyseResult = transitionAnalyser.analyseTransition(
                         transition,
                         currParserState
                 );
-                if (transitionHandlerResult.isSupposedToConsumeToken()) {
+                if (transitionAnalyseResult.isSupposedToConsumeToken()) {
                     // ladies and gentlemen we got em
                     closestTokenConsumingTransitions.add(transition);
-                } else if (transitionHandlerResult.getOtherRuleReference() != null) {
+                } else if (transitionAnalyseResult.getOtherRuleReference() != null) {
                     // it references other rule states, we might get a proper state there!
-                    parserStatesToCheck.addFirst(transitionHandlerResult.getOtherRuleReference());
+                    parserStatesToCheck.addFirst(transitionAnalyseResult.getOtherRuleReference());
                 } else {
                     // bruh, keep exploring the ATN branch then
                     parserStatesToCheck.addFirst(transition.target);

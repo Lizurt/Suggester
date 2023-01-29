@@ -7,47 +7,47 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.List;
 
-public class TransitionHandler {
-    public TransitionHandlerResult handleTransition(Transition transition) {
-        return handleTransition(transition, null);
+public class TransitionAnalyser {
+    public TransitionAnalyseResult analyseTransition(Transition transition) {
+        return analyseTransition(transition, null);
     }
 
-    public TransitionHandlerResult handleTransition(Transition transition, ATNState sourceState) {
-        return handleTransition(transition, sourceState, null, -1);
+    public TransitionAnalyseResult analyseTransition(Transition transition, ATNState sourceState) {
+        return analyseTransition(transition, sourceState, null, -1);
     }
 
-    public TransitionHandlerResult handleTransition(
+    public TransitionAnalyseResult analyseTransition(
             Transition transition,
             ATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
         if (transition instanceof ActionTransition actionTransition) {
-            return handleActionTransition(actionTransition, sourceState, tokens, tokenListIndex);
+            return analyseActionTransition(actionTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof AtomTransition atomTransition) {
             System.out.println("  Transition " + sourceState.stateNumber + " -> "
                     + transition.target.stateNumber + " is Atom");
-            return handleAtomTransition(atomTransition, sourceState, tokens, tokenListIndex);
+            return analyseAtomTransition(atomTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof EpsilonTransition epsilonTransition) {
             System.out.println("  Transition " + sourceState.stateNumber + " -> "
                     + transition.target.stateNumber + " is Epsilon");
-            return handleEpsilonTransition(epsilonTransition, sourceState, tokens, tokenListIndex);
+            return analyseEpsilonTransition(epsilonTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof NotSetTransition notSetTransition) {
-            return handleNotSetTransition(notSetTransition, sourceState, tokens, tokenListIndex);
+            return analyseNotSetTransition(notSetTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof PrecedencePredicateTransition precedencePredicateTransition) {
-            return handlePrecedencePredicateTransition(precedencePredicateTransition, sourceState, tokens, tokenListIndex);
+            return analysePrecedencePredicateTransition(precedencePredicateTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof PredicateTransition predicateTransition) {
-            return handlePredicateTransition(predicateTransition , sourceState, tokens, tokenListIndex);
+            return analysePredicateTransition(predicateTransition , sourceState, tokens, tokenListIndex);
         } else if (transition instanceof RangeTransition rangeTransition) {
-            return handleRangeTransition(rangeTransition, sourceState, tokens, tokenListIndex);
+            return analyseRangeTransition(rangeTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof RuleTransition ruleTransition) {
-            return handleRuleTransition(ruleTransition, sourceState, tokens, tokenListIndex);
+            return analyseRuleTransition(ruleTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof SetTransition setTransition) {
             System.out.println("  Transition " + sourceState.stateNumber + " -> "
                     + transition.target.stateNumber + " is Set");
-            return handleSetTransition(setTransition, sourceState, tokens, tokenListIndex);
+            return analyseSetTransition(setTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof WildcardTransition wildcardTransition) {
-            return handleWildcardTransition(wildcardTransition, sourceState, tokens, tokenListIndex);
+            return analyseWildcardTransition(wildcardTransition, sourceState, tokens, tokenListIndex);
         }
         throw new NotImplementedException();
     }
@@ -56,7 +56,7 @@ public class TransitionHandler {
         return tokens == null || tokenListIndex < 0 || tokens.size() <= tokenListIndex;
     }
 
-    private TransitionHandlerResult handleActionTransition(
+    private TransitionAnalyseResult analyseActionTransition(
             ActionTransition actionTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
@@ -64,14 +64,14 @@ public class TransitionHandler {
     ) {
         throw new NotImplementedException();
     }
-    private TransitionHandlerResult handleAtomTransition(
+    private TransitionAnalyseResult analyseAtomTransition(
             AtomTransition atomTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
         if (areTokenParamsIncorrect(tokens, tokenListIndex)) {
-            return new TransitionHandlerResult(
+            return new TransitionAnalyseResult(
                     false,
                     true,
                     atomTransition.label(),
@@ -81,7 +81,7 @@ public class TransitionHandler {
         }
 
         boolean doesTokenFitParser = atomTransition.label == tokens.get(tokenListIndex).getType();
-        return new TransitionHandlerResult(
+        return new TransitionAnalyseResult(
                 doesTokenFitParser,
                 true,
                 atomTransition.label(),
@@ -89,14 +89,14 @@ public class TransitionHandler {
                 atomTransition.target
         );
     }
-    private TransitionHandlerResult handleEpsilonTransition(
+    private TransitionAnalyseResult analyseEpsilonTransition(
             EpsilonTransition epsilonTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
         if (areTokenParamsIncorrect(tokens, tokenListIndex)) {
-            return new TransitionHandlerResult(
+            return new TransitionAnalyseResult(
                     false,
                     false,
                     epsilonTransition.label(),
@@ -105,7 +105,7 @@ public class TransitionHandler {
             );
         }
 
-        return new TransitionHandlerResult(
+        return new TransitionAnalyseResult(
                 true,
                 false,
                 epsilonTransition.label(),
@@ -113,7 +113,7 @@ public class TransitionHandler {
                 epsilonTransition.target
         );
     }
-    private TransitionHandlerResult handleNotSetTransition(
+    private TransitionAnalyseResult analyseNotSetTransition(
             NotSetTransition notSetTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
@@ -121,7 +121,7 @@ public class TransitionHandler {
     ) {
         throw new NotImplementedException();
     }
-    private TransitionHandlerResult handlePrecedencePredicateTransition(
+    private TransitionAnalyseResult analysePrecedencePredicateTransition(
             PrecedencePredicateTransition precedencePredicateTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
@@ -129,7 +129,7 @@ public class TransitionHandler {
     ) {
         throw new NotImplementedException();
     }
-    private TransitionHandlerResult handlePredicateTransition(
+    private TransitionAnalyseResult analysePredicateTransition(
             PredicateTransition predicateTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
@@ -137,7 +137,7 @@ public class TransitionHandler {
     ) {
         throw new NotImplementedException();
     }
-    private TransitionHandlerResult handleRangeTransition(
+    private TransitionAnalyseResult analyseRangeTransition(
             RangeTransition rangeTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
@@ -145,13 +145,13 @@ public class TransitionHandler {
     ) {
         throw new NotImplementedException();
     }
-    private TransitionHandlerResult handleRuleTransition(
+    private TransitionAnalyseResult analyseRuleTransition(
             RuleTransition ruleTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
-        return new TransitionHandlerResult(
+        return new TransitionAnalyseResult(
                 true,
                 false,
                 null,
@@ -159,14 +159,14 @@ public class TransitionHandler {
                 ruleTransition.followState
         );
     }
-    private TransitionHandlerResult handleSetTransition(
+    private TransitionAnalyseResult analyseSetTransition(
             SetTransition setTransition,
             ATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
         if (areTokenParamsIncorrect(tokens, tokenListIndex)) {
-            return new TransitionHandlerResult(
+            return new TransitionAnalyseResult(
                     false,
                     true,
                     setTransition.label(),
@@ -178,7 +178,7 @@ public class TransitionHandler {
         for (Interval interval : setTransition.set.getIntervals()) {
             for (int val = interval.a; val <= interval.b; val++) {
                 if (tokens.get(tokenListIndex).getType() == val) {
-                    return new TransitionHandlerResult(
+                    return new TransitionAnalyseResult(
                             true,
                             true,
                             setTransition.label(),
@@ -188,7 +188,7 @@ public class TransitionHandler {
                 }
             }
         }
-        return new TransitionHandlerResult(
+        return new TransitionAnalyseResult(
                 false,
                 true,
                 setTransition.label(),
@@ -196,7 +196,7 @@ public class TransitionHandler {
                 setTransition.target
         );
     }
-    private TransitionHandlerResult handleWildcardTransition(
+    private TransitionAnalyseResult analyseWildcardTransition(
             WildcardTransition wildcardTransition,
             ATNState sourceState,
             List<? extends Token> tokens,

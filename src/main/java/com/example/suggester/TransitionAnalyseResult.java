@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.atn.ATNState;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
 @Data
-public class TransitionHandlerResult {
+public class TransitionAnalyseResult {
     private final boolean isTokenMatchingPattern;
 
     private final boolean isSupposedToConsumeToken;

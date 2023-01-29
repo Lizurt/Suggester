@@ -8,8 +8,6 @@ import com.example.suggester.AutoSuggester;
 import com.example.suggester.CasePreference;
 import com.example.suggester.LexerAndParserFactory;
 import com.example.suggester.ReflectionLexerAndParserFactory;
-import org.antlr.runtime.tree.Tree;
-import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.RuleStartState;
 import org.antlr.v4.tool.DOTGenerator;
 import java.io.FileWriter;
@@ -52,10 +50,18 @@ public class TestApp {
             );
             AutoSuggester autoSuggester = new AutoSuggester(lexerAndParserfactory);
             autoSuggester.setCasePreference(CasePreference.LOWER);
-            Collection<String> suggestions = autoSuggester.generateAndGetSuggestions("hello");
-            System.out.println("$$$$$$$$ SUGGESTIONS: ");
-            for (String s : suggestions) {
-                System.out.println(s);
+            while (true) {
+                System.out.print("> ");
+                Scanner scanner = new Scanner(System.in);
+                String input = scanner.nextLine();
+                long a = System.currentTimeMillis();
+                List<String> suggestions = autoSuggester.generateAndGetSuggestions(input);
+                long b = System.currentTimeMillis();
+                System.out.println("It took " + (b - a) + " ms, including the time spent on SOUT");
+                System.out.println("SUGGESTIONS:");
+                for (int i = 0; i < suggestions.size(); i++) {
+                    System.out.println((i + 1) + ") " + suggestions.get(i));
+                }
             }
         }
     }
