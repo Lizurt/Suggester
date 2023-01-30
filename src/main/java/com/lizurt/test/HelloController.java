@@ -1,4 +1,4 @@
-package com.example.arangui;
+package com.lizurt.suggester;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;

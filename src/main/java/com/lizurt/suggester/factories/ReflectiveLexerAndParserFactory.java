@@ -1,4 +1,4 @@
-package com.example.suggester;
+package com.lizurt.suggester.factories;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
@@ -8,12 +8,12 @@ import org.antlr.v4.runtime.TokenStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-public class ReflectionLexerAndParserFactory implements LexerAndParserFactory {
+public class ReflectiveLexerAndParserFactory implements LexerAndParserFactory {
 
     private final Constructor<? extends Lexer> lexerCtr;
     private final Constructor<? extends Parser> parserCtr;
 
-    public ReflectionLexerAndParserFactory(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
+    public ReflectiveLexerAndParserFactory(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
         lexerCtr = getConstructor(lexerClass, CharStream.class);
         parserCtr = getConstructor(parserClass, TokenStream.class);
     }

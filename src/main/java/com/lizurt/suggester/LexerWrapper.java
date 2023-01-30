@@ -1,15 +1,13 @@
-package com.example.suggester;
+package com.lizurt.suggester;
 
+import com.lizurt.suggester.factories.LexerFactory;
 import lombok.Getter;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.atn.RuleStartState;
-import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package com.example.suggester;
+package com.lizurt.suggester;
 
 // todo: i guess we can do suggesting without recursion. Might try use stacks
 

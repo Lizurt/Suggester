@@ -1,4 +1,4 @@
-package com.example.suggester;
+package com.lizurt.suggester.factories;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
