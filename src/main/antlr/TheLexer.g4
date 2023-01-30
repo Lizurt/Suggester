@@ -6,13 +6,11 @@ lexer grammar TheLexer;
 
 HELLO : H E L L O;
 
-HARD : H A R D;
-
 WORLD : W O R L D;
 
-LIZURT : L I Z U R T;
-
 WORK : W O R K;
+
+LIZURT : L I Z U R T;
 
 WS : [ \t\r\n] -> skip;
 

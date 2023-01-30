@@ -51,14 +51,14 @@ public class TestApp {
             AutoSuggester autoSuggester = new AutoSuggester(lexerAndParserfactory);
             autoSuggester.setCasePreference(CasePreference.LOWER);
             while (true) {
-                System.out.print("> ");
+                System.out.print(">> ");
                 Scanner scanner = new Scanner(System.in);
                 String input = scanner.nextLine();
                 long a = System.currentTimeMillis();
                 List<String> suggestions = autoSuggester.generateAndGetSuggestions(input);
                 long b = System.currentTimeMillis();
                 System.out.println("It took " + (b - a) + " ms, including the time spent on SOUT");
-                System.out.println("SUGGESTIONS:");
+                System.out.println("Suggestions:");
                 for (int i = 0; i < suggestions.size(); i++) {
                     System.out.println((i + 1) + ") " + suggestions.get(i));
                 }

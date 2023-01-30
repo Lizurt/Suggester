@@ -2,6 +2,7 @@ package com.example.suggester;
 
 import java.util.*;
 
+import com.example.util.PermissiveSimpleLinkedList;
 import lombok.Getter;
 import lombok.Setter;
 import org.antlr.v4.runtime.Token;
@@ -40,20 +41,27 @@ public class AutoSuggester {
     public List<String> generateAndGetSuggestions(String input) {
         LexerWrapper.TokenizationResult tokenizationResult = tokenizeInput(input);
         ATNState initialParserState = parserWrapper.getCachedParser().getATN().states.get(START_RULE_PARSER_STATE_INDEX);
-        ParserStateWithTokenIndex greedestParserState = getGreediestParserState(
+        ParserStateWithTokenIndex greediestParserState = getGreediestParserStates(
                 initialParserState,
                 tokenizationResult.tokens
         );
-        return generateAndGetSuggestions(greedestParserState, tokenizationResult);
+        return generateAndGetSuggestions(greediestParserState, tokenizationResult);
     }
 
-    private ParserStateWithTokenIndex getGreediestParserState(final ATNState startParserState, final List<? extends Token> tokens) {
+    private ParserStateWithTokenIndex getGreediestParserStates(
+            ATNState startParserState,
+            List<? extends Token> tokens
+    ) {
         // the state where we consumed maximum amount of available tokens.
         // If the state consumed all the tokens (tokens.len == index) we can generate suggestions
-        ParserStateWithTokenIndex greediestParserState = new ParserStateWithTokenIndex(startParserState, 0);
+        ParserStateWithTokenIndex greediestParserState = new ParserStateWithTokenIndex(
+                startParserState,
+                null,
+                0
+        );
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<ParserStateWithTokenIndex> parserStatesToCheck = new LinkedList<>();
-        parserStatesToCheck.addFirst(new ParserStateWithTokenIndex(startParserState, 0));
+        parserStatesToCheck.addFirst(greediestParserState);
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
         while (!parserStatesToCheck.isEmpty()) {
@@ -74,15 +82,22 @@ public class AutoSuggester {
                         currParserState.getTokenIndex()
                 );
                 if (transitionAnalyseResult.isTokenMatchingPattern()) {
+                    ParserStateWithTokenIndex followingState = new ParserStateWithTokenIndex(
+                            transitionAnalyseResult.getTargetState(),
+                            currParserState.getDependentState(),
+                            currParserState.getTokenIndex()
+                    );
                     if (transitionAnalyseResult.isSupposedToConsumeToken()) {
+                        followingState.consumeToken();
+                    }
+                    // the one that transitions points to, not the one that it can reference via rule transition
+                    parserStatesToCheck.addFirst(followingState);
+                    if (transitionAnalyseResult.getOtherRuleReference() != null) {
+                        // thus we check referenced rules first
                         parserStatesToCheck.addFirst(new ParserStateWithTokenIndex(
-                                transition.target,
-                                currParserState.getTokenIndex() + 1
-                        ));
-                    } else {
-                        parserStatesToCheck.addFirst(new ParserStateWithTokenIndex(
-                                transition.target,
-                                currParserState.getTokenIndex()
+                                transitionAnalyseResult.getOtherRuleReference(),
+                                followingState,
+                                followingState.getTokenIndex()
                         ));
                     }
                 }
@@ -105,9 +120,12 @@ public class AutoSuggester {
                 greediestState.getAtnState()
         );
 
-        List<String> fullSuggestions = new ArrayList<>();
+        StringBuilder sbCurrSuggestion = new StringBuilder();
+        // at which char in a user input we'll be checking if a new suggested char is already in the user input
+        int atInputPos = 0;
+        List<String> suggestions = new ArrayList<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
-        LinkedList<ATNState> lexerStatesToCheck = new LinkedList<>();
+        PermissiveSimpleLinkedList<DependableLexerState> lexerStatesToCheck = new PermissiveSimpleLinkedList<>();
         // we'll add a suggestion when will have reached one of these states, so we won't add incomplete suggestions,
         // e.g. "h" for "hello", we'll wait for full "hello" instead
         Set<ATNState> suggestableRulesStopStates = new HashSet<>();
@@ -115,40 +133,65 @@ public class AutoSuggester {
             for (Interval interval : transition.label().getIntervals()) {
                 for (int val = interval.a; val <= interval.b; val++) {
                     RuleStartState lexerRuleToCheck = lexerWrapper.getRuleByItsType(val);
-                    lexerStatesToCheck.addFirst(lexerRuleToCheck);
+                    lexerStatesToCheck.addFirst(new DependableLexerState(
+                            lexerRuleToCheck,
+                            null,
+                            sbCurrSuggestion.length(),
+                            atInputPos
+                    ));
                     suggestableRulesStopStates.add(lexerRuleToCheck.stopState);
                 }
             }
         }
-        StringBuilder sbCurrSuggestion = new StringBuilder();
-        // at which char in a user input we'll be checking if a new suggested char is already in the user input
-        int atInputPos = 0;
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
         statesLoop:
-        while (!lexerStatesToCheck.isEmpty()) {
-            ATNState lexerState = lexerStatesToCheck.poll();
-            if (lexerState instanceof RuleStopState) {
-                if (suggestableRulesStopStates.contains(lexerState)) {
+        while (lexerStatesToCheck.getFirst() != null) {
+            PermissiveSimpleLinkedList.Node<DependableLexerState> currLexerStateNode = lexerStatesToCheck.removeFirst();
+            DependableLexerState currDependableLexerState = currLexerStateNode.getValue();
+            ATNState currLexerState = currLexerStateNode.getValue().getAtnState();
+            if (currLexerState instanceof RuleStopState) {
+                if (currDependableLexerState.getDependentLexerStateNode() != null) {
+                    // we've reached the end of the inner rule completely, which means we could add suggestion chars
+                    // somewhere. So the dependent rule shouldn't erase the inner rule's result but save it.
+                    currDependableLexerState.getDependentLexerStateNode().getValue().setSuggestedCharsAmount(
+                            currDependableLexerState.getSuggestedCharsAmount()
+                    );
+                    currDependableLexerState.getDependentLexerStateNode().getValue().setSuggestingAtInputPos(
+                            currDependableLexerState.getSuggestingAtInputPos()
+                    );
+                }
+                if (suggestableRulesStopStates.contains(currLexerState)) {
+                    // we got a suggestion! Let's add it to the list and keep searching a new one.
+                    // We won't add empty ones
                     if (!sbCurrSuggestion.isEmpty()) {
-                        fullSuggestions.add(sbCurrSuggestion.toString());
+                        suggestions.add(sbCurrSuggestion.toString());
                     }
-                    sbCurrSuggestion.setLength(0);
-                    atInputPos = 0;
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
                 continue;
             }
-            for (int i = lexerState.getNumberOfTransitions() - 1; i >= 0; i--) {
-                Transition transition = lexerState.transition(i);
+            // in case if we failed/completed search
+            sbCurrSuggestion.setLength(currDependableLexerState.getSuggestedCharsAmount());
+            atInputPos = currDependableLexerState.getSuggestingAtInputPos();
+            // rule start states have null prev state
+            if (currDependableLexerState.getPrevState() != null) {
+                // we're here because of one of previous node's transition, so we can say we checked this transition
+                currDependableLexerState.getPrevState().setUncheckedTransitionsAmt(
+                        currDependableLexerState.getPrevState().getUncheckedTransitionsAmt() - 1
+                );
+            }
+            currDependableLexerState.setUncheckedTransitionsAmt(currLexerState.getNumberOfTransitions());
+            for (int i = currLexerState.getNumberOfTransitions() - 1; i >= 0; i--) {
+                // don't affect other transition's target states if one of the transitions gave a suggestion
+                sbCurrSuggestion.setLength(currDependableLexerState.getSuggestedCharsAmount());
+                atInputPos = currDependableLexerState.getSuggestingAtInputPos();
+                Transition transition = currLexerState.transition(i);
                 TransitionAnalyseResult transitionAnalyseResult = transitionAnalyser.analyseTransition(
                         transition,
-                        lexerState
+                        currLexerState
                 );
-                lexerStatesToCheck.addFirst(transitionAnalyseResult.getTargetState());
-                if (transitionAnalyseResult.getOtherRuleReference() != null) {
-                    lexerStatesToCheck.addFirst(transitionAnalyseResult.getOtherRuleReference());
-                } else if (transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
+                if (transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
                     IntervalSet charIntervalSet = transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts();
                     Character newCharForSuggestion = getCharForSuggestion(charIntervalSet);
                     InputAndSuggestionCompareResult inputAndSuggestionCompareResult = compareInputAndSuggestion(
@@ -158,8 +201,20 @@ public class AutoSuggester {
                     );
                     switch (inputAndSuggestionCompareResult) {
                         case INAPPROPRIATE_SUGGESTION -> {
-                            sbCurrSuggestion.setLength(0);
-                            atInputPos = 0;
+                            DependableLexerState livingPrevState = currDependableLexerState.getPrevState();
+                            while (livingPrevState != null && livingPrevState.getUncheckedTransitionsAmt() == 0) {
+                                livingPrevState = livingPrevState.getPrevState();
+                            }
+                            if (livingPrevState != null) {
+                                // we haven't checked current rule completely, there are still unchecked transitions.
+                                // Their target states already in our to-check list
+                                continue statesLoop;
+                            }
+                            // if we reached this line, that means current rule failed completely.
+                            // If some state's dependent on this rule, we should also fail dependent state's transition
+                            // which means to remove transition's target from the to-check list
+                            lexerStatesToCheck.remove(currDependableLexerState.getDependentLexerStateNode());
+                            // nope we ain't wasting time on suggestions that don't fit the user input
                             continue statesLoop;
                         }
                         case APPROPRIATE_SUGGESTION -> {
@@ -171,10 +226,29 @@ public class AutoSuggester {
                         default -> throw new NotImplementedException("Unknown input and suggestion compare result");
                     }
                 }
+                DependableLexerState followingState = new DependableLexerState(
+                        transitionAnalyseResult.getTargetState(),
+                        currDependableLexerState,
+                        sbCurrSuggestion.length(),
+                        atInputPos
+                );
+                followingState.dependOn(currDependableLexerState.getDependentLexerStateNode());
+                PermissiveSimpleLinkedList.Node<DependableLexerState> followingStateNode =
+                        lexerStatesToCheck.addFirst(followingState);
+                if (transitionAnalyseResult.getOtherRuleReference() != null) {
+                    DependableLexerState dependableLexerState = new DependableLexerState(
+                            transitionAnalyseResult.getOtherRuleReference(),
+                            null,
+                            sbCurrSuggestion.length(),
+                            atInputPos
+                    );
+                    dependableLexerState.dependOn(followingStateNode);
+                    lexerStatesToCheck.addFirst(dependableLexerState);
+                }
             }
         }
 
-        return fullSuggestions;
+        return suggestions;
     }
 
     private InputAndSuggestionCompareResult compareInputAndSuggestion(

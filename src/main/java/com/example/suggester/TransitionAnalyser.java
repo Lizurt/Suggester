@@ -25,12 +25,8 @@ public class TransitionAnalyser {
         if (transition instanceof ActionTransition actionTransition) {
             return analyseActionTransition(actionTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof AtomTransition atomTransition) {
-            System.out.println("  Transition " + sourceState.stateNumber + " -> "
-                    + transition.target.stateNumber + " is Atom");
             return analyseAtomTransition(atomTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof EpsilonTransition epsilonTransition) {
-            System.out.println("  Transition " + sourceState.stateNumber + " -> "
-                    + transition.target.stateNumber + " is Epsilon");
             return analyseEpsilonTransition(epsilonTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof NotSetTransition notSetTransition) {
             return analyseNotSetTransition(notSetTransition, sourceState, tokens, tokenListIndex);
@@ -43,8 +39,6 @@ public class TransitionAnalyser {
         } else if (transition instanceof RuleTransition ruleTransition) {
             return analyseRuleTransition(ruleTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof SetTransition setTransition) {
-            System.out.println("  Transition " + sourceState.stateNumber + " -> "
-                    + transition.target.stateNumber + " is Set");
             return analyseSetTransition(setTransition, sourceState, tokens, tokenListIndex);
         } else if (transition instanceof WildcardTransition wildcardTransition) {
             return analyseWildcardTransition(wildcardTransition, sourceState, tokens, tokenListIndex);
