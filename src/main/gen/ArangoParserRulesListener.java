@@ -1,10 +1,10 @@
-// Generated from D:/Programs/GitHubRepos/Arangui/src/main/antlr\ArangoParserRules.g4 by ANTLR 4.10.1
+// Generated from D:/Programs/GitHubRepos/Suggester/src/main/antlr\ArangoParserRules.g4 by ANTLR 4.10.1
 
-    package com.example.arangui.antlr;
+    package com.lizurt.suggester.antlr;
 
     import java.util.*;
     import org.antlr.v4.tool.Rule;
-    import com.example.arangui.arango.grammar.AranagoGrammarRulesSingleton;
+    import com.lizurt.suggester.arango.grammar.AranagoGrammarRulesSingleton;
 
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 

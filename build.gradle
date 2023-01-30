@@ -25,15 +25,15 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-var antlrOutDir = "${project.buildDir}/generated-src/antlr/main/com/example/arangui/antlr"
+var antlrOutDir = "${project.buildDir}/generated-src/antlr/main/com/example/suggester/antlr"
 
 generateGrammarSource {
     outputDirectory = file(antlrOutDir)
 }
 
 application {
-    mainModule = 'com.example.arangui'
-    mainClass = 'com.example.arangui.HelloApplication'
+    mainModule = 'com.example.suggester'
+    mainClass = 'com.example.suggester.HelloApplication'
 }
 
 javafx {

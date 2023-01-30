@@ -1,6 +1,6 @@
 lexer grammar ArangoLexerRules;
 @header {
-    package com.example.arangui.antlr;
+    package com.lizurt.suggester.antlr;
 }
 
 // ################################################################

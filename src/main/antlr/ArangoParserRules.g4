@@ -3,11 +3,11 @@ options {
     tokenVocab = ArangoLexerRules;
 }
 @header {
-    package com.example.arangui.antlr;
+    package com.lizurt.suggester.antlr;
 
     import java.util.*;
     import org.antlr.v4.tool.Rule;
-    import com.example.arangui.arango.grammar.ArangoGrammarRulesSingleton;
+    import com.lizurt.suggester.arango.grammar.ArangoGrammarRulesSingleton;
 }
 @parser::members {
     public final static int CONTEXT_POSTFIX_LENGTH = 7;
