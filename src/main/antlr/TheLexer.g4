@@ -10,7 +10,7 @@ WORLD : W O R L D;
 
 WORK : W O R K;
 
-LIZURT : L I Z U R T;
+LIZURT : 'lizurt';
 
 WS : [ \t\r\n] -> skip;
 

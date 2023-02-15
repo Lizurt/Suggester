@@ -1,5 +1,6 @@
 package com.lizurt.suggester.factories;
 
+import grammar.java.Java8Parser;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Parser;
@@ -38,6 +39,7 @@ public class ReflectiveLexerAndParserFactory implements LexerAndParserFactory {
     }
 
     private <T> T create(Constructor<? extends T> contructor, Object arg) {
+        grammar.java.Java8Parser java8Parser = new Java8Parser(null);
         try {
             return contructor.newInstance(arg);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {

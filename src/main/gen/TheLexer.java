@@ -1,4 +1,4 @@
-// Generated from java-escape by ANTLR 4.11.1
+// Generated from D:/Programs/GitHubRepos/Suggester/src/main/antlr\TheLexer.g4 by ANTLR 4.10.1
 
     package the.grammar;
 
@@ -11,9 +11,9 @@ import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.*;
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class TheLexer extends Lexer {
-	static { RuntimeMetaData.checkVersion("4.11.1", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.10.1", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
@@ -39,6 +39,7 @@ public class TheLexer extends Lexer {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
+			null, null, null, null, "'lizurt'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
@@ -160,9 +161,9 @@ public class TheLexer extends Lexer {
 		"7\u001b\u0000FG\u0003\'\u0013\u0000GH\u0003-\u0016\u0000HI\u0003!\u0010"+
 		"\u0000IJ\u0003\u0011\b\u0000J\u0004\u0001\u0000\u0000\u0000KL\u00037\u001b"+
 		"\u0000LM\u0003\'\u0013\u0000MN\u0003-\u0016\u0000NO\u0003\u001f\u000f"+
-		"\u0000O\u0006\u0001\u0000\u0000\u0000PQ\u0003!\u0010\u0000QR\u0003\u001b"+
-		"\r\u0000RS\u0003=\u001e\u0000ST\u00033\u0019\u0000TU\u0003-\u0016\u0000"+
-		"UV\u00031\u0018\u0000V\b\u0001\u0000\u0000\u0000WX\u0007\u0000\u0000\u0000"+
+		"\u0000O\u0006\u0001\u0000\u0000\u0000PQ\u0005l\u0000\u0000QR\u0005i\u0000"+
+		"\u0000RS\u0005z\u0000\u0000ST\u0005u\u0000\u0000TU\u0005r\u0000\u0000"+
+		"UV\u0005t\u0000\u0000V\b\u0001\u0000\u0000\u0000WX\u0007\u0000\u0000\u0000"+
 		"XY\u0001\u0000\u0000\u0000YZ\u0006\u0004\u0000\u0000Z\n\u0001\u0000\u0000"+
 		"\u0000[\\\u0007\u0001\u0000\u0000\\\f\u0001\u0000\u0000\u0000]^\u0007"+
 		"\u0002\u0000\u0000^\u000e\u0001\u0000\u0000\u0000_`\u0007\u0003\u0000"+

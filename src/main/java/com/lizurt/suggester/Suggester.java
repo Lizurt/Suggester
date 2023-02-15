@@ -19,9 +19,7 @@ public class Suggester {
 
     @Getter
     @Setter
-    private CasePreference casePreference = CasePreference.LAST_MET;
-
-    public static int START_RULE_PARSER_STATE_INDEX = 0;
+    private CasePreference casePreference = CasePreference.LOWER;
 
     private final TransitionAnalyser transitionAnalyser = new TransitionAnalyser();
 
@@ -41,15 +39,19 @@ public class Suggester {
     // "hello i generate (and return) suggestions into my own class depending on input which is also in my class"
     public List<String> generateAndGetSuggestions(String input) {
         LexerWrapper.TokenizationResult tokenizationResult = tokenizeInput(input);
-        ATNState initialParserState = parserWrapper.getCachedParser().getATN().states.get(START_RULE_PARSER_STATE_INDEX);
-        ParserStateWithTokenIndex greediestParserState = getGreediestParserStates(
-                initialParserState,
-                tokenizationResult.tokens
-        );
-        return generateAndGetSuggestions(greediestParserState, tokenizationResult);
+        List<ATNState> initialParserStates = parserWrapper.getInitialAtnStates();
+        List<String> suggestions = new ArrayList<>();
+        for (ATNState initialState : initialParserStates) {
+            ParserStateWithTokenIndex greediestParserState = getGreediestParserState(
+                    initialState,
+                    tokenizationResult.tokens
+            );
+            suggestions.addAll(generateAndGetSuggestions(greediestParserState, tokenizationResult));
+        }
+        return suggestions;
     }
 
-    private ParserStateWithTokenIndex getGreediestParserStates(
+    private ParserStateWithTokenIndex getGreediestParserState(
             ATNState startParserState,
             List<? extends Token> tokens
     ) {
@@ -112,9 +114,20 @@ public class Suggester {
             ParserStateWithTokenIndex greediestState,
             LexerWrapper.TokenizationResult tokenizationResult
     ) {
-        if (greediestState.getTokenIndex() < tokenizationResult.tokens.size()) {
-            // oops seems the tokens don't fit in the parser rules
-            return Collections.emptyList();
+        String textToComplete = tokenizationResult.untokenizedText;
+        List<? extends Token> tokens = tokenizationResult.tokens;
+        if (greediestState.getTokenIndex() < tokens.size()) {
+            // oops seems the tokens don't fit in the parser rules.
+            // Let's give it a second chance and assume that all tokens after greediest state token index are just
+            // our untokenized text.
+            StringBuilder sbNewTextToComplete = new StringBuilder();
+            for (int i = greediestState.getTokenIndex(); i < tokens.size(); i++) {
+                sbNewTextToComplete.append(tokens.get(i).getText());
+            }
+            // don't forget the untokenized text if lexer found some
+            sbNewTextToComplete.append(textToComplete);
+            textToComplete = sbNewTextToComplete.toString();
+            tokens = tokens.subList(0, greediestState.getTokenIndex());
         }
 
         StringBuilder sbCurrSuggestion = new StringBuilder();
@@ -190,37 +203,61 @@ public class Suggester {
                 );
                 if (transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts() != null) {
                     IntervalSet charIntervalSet = transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts();
-                    Character newCharForSuggestion = getCharForSuggestion(charIntervalSet);
-                    InputAndSuggestionCompareResult inputAndSuggestionCompareResult = compareInputAndSuggestion(
-                            tokenizationResult.untokenizedText,
-                            atInputPos,
-                            newCharForSuggestion
-                    );
-                    switch (inputAndSuggestionCompareResult) {
-                        case INAPPROPRIATE_SUGGESTION -> {
-                            DependableLexerState livingPrevState = currDependableLexerState.getPrevState();
-                            while (livingPrevState != null && livingPrevState.getUncheckedTransitionsAmt() == 0) {
-                                livingPrevState = livingPrevState.getPrevState();
-                            }
-                            if (livingPrevState != null) {
-                                // we haven't checked current rule completely, there are still unchecked transitions.
-                                // Their target states already in our to-check list
+                    List<Character> newCharsForSuggestion = getCharsForSuggestion(charIntervalSet);
+                    if (newCharsForSuggestion == null || newCharsForSuggestion.isEmpty()) {
+                        throw new RuntimeException("No suggested chars for some reason");
+                    }
+                    charsLoop:
+                    for (int j = 0; j < newCharsForSuggestion.size(); j++) {
+                        InputAndSuggestionCompareResult inputAndSuggestionCompareResult = compareInputAndSuggestion(
+                                textToComplete,
+                                atInputPos,
+                                newCharsForSuggestion.get(j)
+                        );
+                        switch (inputAndSuggestionCompareResult) {
+                            case INAPPROPRIATE_SUGGESTION -> {
+                                if (j != newCharsForSuggestion.size() - 1) {
+                                    // come on that's not the last suggestion there's still a chance!
+                                    continue;
+                                }
+                                // nope all suggestions are a dead way. Let's roll back to some previous branch (rule).
+                                // For avoiding duplicate code, we assume this state as a dependent state
+                                PermissiveSimpleLinkedList.Node<DependableLexerState> dependentLexerStateNode =
+                                        currLexerStateNode;
+                                while (dependentLexerStateNode != null) {
+                                    // poor states die without a chance to live :(
+                                    lexerStatesToCheck.remove(currDependableLexerState.getDependentLexerStateNode());
+                                    // we should also check if we need to remove the dependent state's dependent state,
+                                    // so we also check if this branch (rule) still has some unchecked transitions
+                                    DependableLexerState livingPrevState = dependentLexerStateNode.getValue().getPrevState();
+                                    while (livingPrevState != null && livingPrevState.getUncheckedTransitionsAmt() == 0) {
+                                        livingPrevState = livingPrevState.getPrevState();
+                                    }
+                                    if (livingPrevState != null) {
+                                        // ok enough of breaking dependent states' lifes, their previous state still
+                                        // has some unchecked transitions
+                                        break;
+                                    }
+                                    // no living states in the previous ones of this one. This branch (rule) is
+                                    // has completely failed, and we should fail the dependent state
+                                    dependentLexerStateNode =
+                                            dependentLexerStateNode.getValue().getDependentLexerStateNode();
+                                }
+                                // nope we ain't wasting time on suggestions that don't fit the user input
                                 continue statesLoop;
                             }
-                            // if we reached this line, that means current rule failed completely.
-                            // If some state's dependent on this rule, we should also fail dependent state's transition
-                            // which means to remove transition's target from the to-check list
-                            lexerStatesToCheck.remove(currDependableLexerState.getDependentLexerStateNode());
-                            // nope we ain't wasting time on suggestions that don't fit the user input
-                            continue statesLoop;
+                            case APPROPRIATE_SUGGESTION -> {
+                                sbCurrSuggestion.append(newCharsForSuggestion.get(j));
+                                // nope we already found what we were looking for. Breaking
+                                break charsLoop;
+                            }
+                            case SUGGESTION_ALREADY_IN_INPUT -> {
+                                atInputPos++;
+                                // nope we already found what we were looking for. Breaking
+                                break charsLoop;
+                            }
+                            default -> throw new NotImplementedException("Unknown input and suggestion compare result");
                         }
-                        case APPROPRIATE_SUGGESTION -> {
-                            sbCurrSuggestion.append(newCharForSuggestion);
-                        }
-                        case SUGGESTION_ALREADY_IN_INPUT -> {
-                            atInputPos++;
-                        }
-                        default -> throw new NotImplementedException("Unknown input and suggestion compare result");
                     }
                 }
                 DependableLexerState followingState = new DependableLexerState(
@@ -262,27 +299,31 @@ public class Suggester {
         return InputAndSuggestionCompareResult.INAPPROPRIATE_SUGGESTION;
     }
 
-    private Character getCharForSuggestion(IntervalSet availableCharsIntervals) {
+    private List<Character> getCharsForSuggestion(IntervalSet availableCharsIntervals) {
         if (availableCharsIntervals.size() <= 0) {
             return null;
         }
-        Character result = null;
+        List<Character> result = new ArrayList<>();
         switch (casePreference) {
-            case FIRST_MET -> {
-                result = Character.toChars(
-                        availableCharsIntervals.getIntervals().get(0).a
-                )[0];
-            }
-            case LAST_MET -> {
-                result = Character.toChars(
-                        availableCharsIntervals.getIntervals().get(availableCharsIntervals.size() - 1).b
-                )[0];
+            case NONE -> {
+                for (Interval interval : availableCharsIntervals.getIntervals()) {
+                    for (int val = interval.a; val <= interval.b; val++) {
+                        char[] chars = Character.toChars(val);
+                        for (char character : chars) {
+                            result.add(character);
+                        }
+                    }
+                }
             }
             case LOWER -> {
                 for (Interval interval : availableCharsIntervals.getIntervals()) {
                     for (int val = interval.a; val <= interval.b; val++) {
-                        if (Character.isLowerCase(val)) {
-                            result = Character.toChars(val)[0];
+                        char[] chars = Character.toChars(val);
+                        for (char character : chars) {
+                            if (Character.isUpperCase(character)) {
+                                continue;
+                            }
+                            result.add(character);
                         }
                     }
                 }
@@ -290,8 +331,12 @@ public class Suggester {
             case UPPER -> {
                 for (Interval interval : availableCharsIntervals.getIntervals()) {
                     for (int val = interval.a; val <= interval.b; val++) {
-                        if (Character.isUpperCase(val)) {
-                            result = Character.toChars(val)[0];
+                        char[] chars = Character.toChars(val);
+                        for (char character : chars) {
+                            if (Character.isLowerCase(character)) {
+                                continue;
+                            }
+                            result.add(character);
                         }
                     }
                 }
