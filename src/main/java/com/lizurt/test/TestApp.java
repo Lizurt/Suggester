@@ -21,7 +21,7 @@ import java.util.*;
 public class TestApp {
     public static void main(String[] args) {
         LexerAndParserFactory lexerAndParserfactory = new ReflectiveLexerAndParserFactory(
-                TheLexer.class, TheParser.class
+                grammar.java.Java8Lexer.class, grammar.java.Java8Parser.class
         );
         LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
         ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);

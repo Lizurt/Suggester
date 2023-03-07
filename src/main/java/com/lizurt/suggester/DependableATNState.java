@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.antlr.v4.runtime.atn.ATNState;
 
+import java.util.HashSet;
+import java.util.Set;
+
 // For example we have A state who refers B state via RuleTransition who then leads to C state.
 // If B state fails completely (all their forks/branches fail completely), we should also cut the A -> C branch,
 // which means we "fail" C state.
@@ -36,6 +39,10 @@ public class DependableATNState {
 
     // how many tokens we consumed at this state
     private int consumedTokensAmt;
+
+    // which transitions' following states are banned to be checked. Used in star and plus blocks where we don't want
+    // to loop infinitely
+    private Set<ATNState> bannedStates;
 
     @Override
     public String toString() {

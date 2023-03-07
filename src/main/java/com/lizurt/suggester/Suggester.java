@@ -23,6 +23,8 @@ public class Suggester {
 
     private final TransitionAnalyser transitionAnalyser = new TransitionAnalyser();
 
+    private final ATNStateAnalyser atnStateAnalyser = new ATNStateAnalyser();
+
     // region init stuff
 
     public Suggester(LexerAndParserFactory lexerAndParserFactory) {
@@ -68,7 +70,8 @@ public class Suggester {
                 null,
                 0,
                 0,
-                0
+                0,
+                null
         );
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> parserStatesToCheck = new LinkedList<>();
@@ -96,7 +99,8 @@ public class Suggester {
                             currDependableATNState.getSbSuggestion(),
                             currDependableATNState.getSuggestedCharsAmount(),
                             currDependableATNState.getSuggestingAtInputPos(),
-                            currDependableATNState.getConsumedTokensAmt()
+                            currDependableATNState.getConsumedTokensAmt(),
+                            null
                     ));
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
@@ -125,7 +129,8 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            consumedTokensAmt
+                            consumedTokensAmt,
+                            null
                     );
                     parserStatesToCheck.addFirst(referencedState);
                 } else {
@@ -136,7 +141,8 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            consumedTokensAmt
+                            consumedTokensAmt,
+                            null
                     );
                     parserStatesToCheck.addFirst(followingState);
                 }
@@ -189,7 +195,8 @@ public class Suggester {
                             new StringBuilder(),
                             0,
                             0,
-                            -1
+                            -1,
+                            new HashSet<>()
                     ));
                     suggestableRulesStopStates.add(lexerRuleToCheck.stopState);
                 }
@@ -220,13 +227,21 @@ public class Suggester {
                             currDependableATNState.getSbSuggestion(),
                             currDependableATNState.getSuggestedCharsAmount(),
                             currDependableATNState.getSuggestingAtInputPos(),
-                            -1
+                            -1,
+                            currDependableATNState.getBannedStates()
                     ));
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
                 continue;
             }
-            boolean shouldDuplicateSBSuggestion = currLexerState.getNumberOfTransitions() > 1;
+            if (currDependableATNState.getBannedStates().contains(currDependableATNState.getAtnState())) {
+                // avoid infinite loops
+                continue;
+            }
+            if (atnStateAnalyser.shouldStateBeBanned(currLexerState)) {
+                currDependableATNState.getBannedStates().add(currLexerState);
+            }
+            boolean shouldCopySomeData = currLexerState.getNumberOfTransitions() > 1;
             for (int i = currLexerState.getNumberOfTransitions() - 1; i >= 0; i--) {
                 // don't affect other transition's target states if one of the transitions gave a suggestion
                 sbCurrSuggestion.setLength(currDependableATNState.getSuggestedCharsAmount());
@@ -273,10 +288,13 @@ public class Suggester {
                     }
                 }
                 StringBuilder sbSuggestion;
-                if (shouldDuplicateSBSuggestion) {
+                Set<ATNState> bannedStates;
+                if (shouldCopySomeData) {
                     sbSuggestion = new StringBuilder(currDependableATNState.getSbSuggestion());
+                    bannedStates = new HashSet<>(currDependableATNState.getBannedStates());
                 } else {
                     sbSuggestion = currDependableATNState.getSbSuggestion();
+                    bannedStates = currDependableATNState.getBannedStates();
                 }
                 if (transitionAnalyseResult.getOtherRuleReference() != null) {
                     DependableATNState referencedState = new DependableATNState(
@@ -286,7 +304,8 @@ public class Suggester {
                             sbSuggestion,
                             sbCurrSuggestion.length(),
                             atInputPos,
-                            -1
+                            -1,
+                            bannedStates
                     );
                     lexerStatesToCheck.addFirst(referencedState);
                 } else {
@@ -297,7 +316,8 @@ public class Suggester {
                             sbSuggestion,
                             sbCurrSuggestion.length(),
                             atInputPos,
-                            -1
+                            -1,
+                            bannedStates
                     );
                     lexerStatesToCheck.addFirst(followingState);
                 }
@@ -380,7 +400,8 @@ public class Suggester {
                 null,
                 -1,
                 -1,
-                startParserState.getNumberOfTransitions()
+                startParserState.getNumberOfTransitions(),
+                null
         ));
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
@@ -396,7 +417,8 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            currDependableParserState.getCallerTransition().getFollowingState().getNumberOfTransitions()
+                            currDependableParserState.getCallerTransition().getFollowingState().getNumberOfTransitions(),
+                            null
                     ));
                 }
 
@@ -421,7 +443,8 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getOtherRuleReference().getNumberOfTransitions()
+                            transitionAnalyseResult.getOtherRuleReference().getNumberOfTransitions(),
+                            null
                     ));
                 } else {
                     // bruh, keep exploring the ATN branch then
@@ -432,7 +455,8 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getFollowingState().getNumberOfTransitions()
+                            transitionAnalyseResult.getFollowingState().getNumberOfTransitions(),
+                            null
                     ));
                 }
             }
