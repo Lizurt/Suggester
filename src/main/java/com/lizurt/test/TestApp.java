@@ -1,8 +1,11 @@
 package com.lizurt.test;
 
+import com.lizurt.suggester.LexerWrapper;
+import com.lizurt.suggester.ParserWrapper;
 import com.lizurt.suggester.Suggester;
 import com.lizurt.suggester.CasePreference;
 import com.lizurt.suggester.factories.LexerAndParserFactory;
+import com.lizurt.suggester.factories.ParserFactory;
 import com.lizurt.suggester.factories.ReflectiveLexerAndParserFactory;
 import org.antlr.v4.Tool;
 import org.antlr.v4.runtime.atn.RuleStartState;
@@ -16,11 +19,13 @@ import java.io.IOException;
 import java.util.*;
 
 public class TestApp {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         LexerAndParserFactory lexerAndParserfactory = new ReflectiveLexerAndParserFactory(
-                grammar.java.Java8Lexer.class, grammar.java.Java8Parser.class
+                TheLexer.class, TheParser.class
         );
-        Suggester suggester = new Suggester(lexerAndParserfactory);
+        LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
+        ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);
+        Suggester suggester = new Suggester(lexerWrapper, parserWrapper);
         suggester.setCasePreference(CasePreference.LOWER);
         while (true) {
             System.out.print(">> ");

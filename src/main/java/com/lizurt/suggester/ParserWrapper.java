@@ -10,23 +10,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-class ParserWrapper {
+public class ParserWrapper {
     private final Parser cachedParser;
 
     // states with no links to them
-    private final List<ATNState> initialAtnStates = new ArrayList<>();
+    private List<ATNState> initialAtnStates = new ArrayList<>();
 
     public ParserWrapper(ParserFactory parserFactory) {
         this.cachedParser = parserFactory.createParser(null);
+        this.initialAtnStates = tryGetInitialAtnStates();
+    }
 
+    public ParserWrapper(ParserFactory parserFactory, List<ATNState> initialAtnStates) {
+        this.cachedParser = parserFactory.createParser(null);
+        this.initialAtnStates = initialAtnStates;
+    }
+
+    public ParserWrapper(ParserFactory parserFactory, String... initialAtnStatesNames) {
+        this.cachedParser = parserFactory.createParser(null);
+        for (String stateName : initialAtnStatesNames) {
+            if (!cachedParser.getRuleIndexMap().containsKey(stateName)) {
+                throw new IllegalArgumentException("Parser doesn't conain such state: \"" + stateName + "\"");
+            }
+            int stateIndex = cachedParser.getRuleIndexMap().get(stateName);
+            initialAtnStates.add(cachedParser.getATN().ruleToStartState[stateIndex]);
+        }
+    }
+
+    public List<ATNState> tryGetInitialAtnStates() {
+        List<ATNState> result = new ArrayList<>();
         for (RuleStartState ruleStartState : cachedParser.getATN().ruleToStartState) {
             // stop states have transitions to states who were referenced via a transition who referenced this
             // start state. These transitions also known as rule transitions. So if there are no rule transitions,
-            // no one references this start state so this start state is an initial state
+            // no one references this state, so we assume this state as an initial one
             if (ruleStartState.stopState.getNumberOfTransitions() > 0) {
                 continue;
             }
-            initialAtnStates.add(ruleStartState);
+            result.add(ruleStartState);
         }
+        return result;
     }
 }

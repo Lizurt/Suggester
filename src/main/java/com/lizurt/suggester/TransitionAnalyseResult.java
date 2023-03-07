@@ -19,5 +19,8 @@ public class TransitionAnalyseResult {
     private final ATNState otherRuleReference;
 
     @NonNull
-    private final ATNState targetState;
+    private final ATNState followingState;
+
+    // from which state this transition come out of
+    private final DependableATNState sourceState;
 }
