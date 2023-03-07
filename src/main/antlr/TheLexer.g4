@@ -4,13 +4,11 @@ lexer grammar TheLexer;
     package the.grammar;
 }
 
-HELLO : H E L L O;
+IDENTIFIER : IDENTIFIER_START IDENTIFIER_PART*;
 
-WORLD : W O R L D;
+IDENTIFIER_START : [A-Z];
 
-WORK : W O R K;
-
-LIZURT : L I Z U R T;
+IDENTIFIER_PART : IDENTIFIER_START | [a-z];
 
 WS : [ \t\r\n] -> skip;
 

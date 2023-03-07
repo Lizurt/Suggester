@@ -12,13 +12,13 @@ public class TransitionAnalyser {
         return analyseTransition(transition, null);
     }
 
-    public TransitionAnalyseResult analyseTransition(Transition transition, ATNState sourceState) {
+    public TransitionAnalyseResult analyseTransition(Transition transition, DependableATNState sourceState) {
         return analyseTransition(transition, sourceState, null, -1);
     }
 
     public TransitionAnalyseResult analyseTransition(
             Transition transition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -52,7 +52,7 @@ public class TransitionAnalyser {
 
     private TransitionAnalyseResult analyseActionTransition(
             ActionTransition actionTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -61,12 +61,13 @@ public class TransitionAnalyser {
                 false,
                 actionTransition.label(),
                 null,
-                actionTransition.target
+                actionTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseAtomTransition(
             AtomTransition atomTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -76,7 +77,8 @@ public class TransitionAnalyser {
                     true,
                     atomTransition.label(),
                     null,
-                    atomTransition.target
+                    atomTransition.target,
+                    sourceState
             );
         }
 
@@ -86,12 +88,13 @@ public class TransitionAnalyser {
                 true,
                 atomTransition.label(),
                 null,
-                atomTransition.target
+                atomTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseEpsilonTransition(
             EpsilonTransition epsilonTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -101,7 +104,8 @@ public class TransitionAnalyser {
                     false,
                     epsilonTransition.label(),
                     null,
-                    epsilonTransition.target
+                    epsilonTransition.target,
+                    sourceState
             );
         }
 
@@ -110,12 +114,13 @@ public class TransitionAnalyser {
                 false,
                 epsilonTransition.label(),
                 null,
-                epsilonTransition.target
+                epsilonTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseNotSetTransition(
             NotSetTransition notSetTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -124,12 +129,13 @@ public class TransitionAnalyser {
                 false,
                 notSetTransition.label(),
                 null,
-                notSetTransition.target
+                notSetTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analysePrecedencePredicateTransition(
             PrecedencePredicateTransition precedencePredicateTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -138,12 +144,13 @@ public class TransitionAnalyser {
                 false,
                 precedencePredicateTransition.label(),
                 null,
-                precedencePredicateTransition.target
+                precedencePredicateTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analysePredicateTransition(
             PredicateTransition predicateTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -152,12 +159,13 @@ public class TransitionAnalyser {
                 false,
                 predicateTransition.label(),
                 null,
-                predicateTransition.target
+                predicateTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseRangeTransition(
             RangeTransition rangeTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -166,12 +174,13 @@ public class TransitionAnalyser {
                 false,
                 rangeTransition.label(),
                 null,
-                rangeTransition.target
+                rangeTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseRuleTransition(
             RuleTransition ruleTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -180,12 +189,13 @@ public class TransitionAnalyser {
                 false,
                 null,
                 ruleTransition.target,
-                ruleTransition.followState
+                ruleTransition.followState,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseSetTransition(
             SetTransition setTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -195,7 +205,8 @@ public class TransitionAnalyser {
                     true,
                     setTransition.label(),
                     null,
-                    setTransition.target
+                    setTransition.target,
+                    sourceState
             );
         }
 
@@ -207,7 +218,8 @@ public class TransitionAnalyser {
                             true,
                             setTransition.label(),
                             null,
-                            setTransition.target
+                            setTransition.target,
+                            sourceState
                     );
                 }
             }
@@ -217,12 +229,13 @@ public class TransitionAnalyser {
                 true,
                 setTransition.label(),
                 null,
-                setTransition.target
+                setTransition.target,
+                sourceState
         );
     }
     private TransitionAnalyseResult analyseWildcardTransition(
             WildcardTransition wildcardTransition,
-            ATNState sourceState,
+            DependableATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -231,7 +244,8 @@ public class TransitionAnalyser {
                 false,
                 wildcardTransition.label(),
                 null,
-                wildcardTransition.target
+                wildcardTransition.target,
+                sourceState
         );
     }
 }

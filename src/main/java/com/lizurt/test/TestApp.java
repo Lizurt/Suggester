@@ -1,18 +1,31 @@
 package com.lizurt.test;
 
+import com.lizurt.suggester.LexerWrapper;
+import com.lizurt.suggester.ParserWrapper;
 import com.lizurt.suggester.Suggester;
 import com.lizurt.suggester.CasePreference;
 import com.lizurt.suggester.factories.LexerAndParserFactory;
+import com.lizurt.suggester.factories.ParserFactory;
 import com.lizurt.suggester.factories.ReflectiveLexerAndParserFactory;
+import org.antlr.v4.Tool;
+import org.antlr.v4.runtime.atn.RuleStartState;
+import org.antlr.v4.tool.DOTGenerator;
+import org.antlr.v4.tool.Grammar;
+import the.grammar.TheLexer;
+import the.grammar.TheParser;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class TestApp {
     public static void main(String[] args) {
         LexerAndParserFactory lexerAndParserfactory = new ReflectiveLexerAndParserFactory(
-                the.grammar.TheLexer.class, the.grammar.TheParser.class
+                grammar.java.Java8Lexer.class, grammar.java.Java8Parser.class
         );
-        Suggester suggester = new Suggester(lexerAndParserfactory);
+        LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
+        ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);
+        Suggester suggester = new Suggester(lexerWrapper, parserWrapper);
         suggester.setCasePreference(CasePreference.LOWER);
         while (true) {
             System.out.print(">> ");

@@ -51,6 +51,11 @@ public class LexerWrapper {
                 // EOF has -1 type. This rule doesn't have its own index or rule
                 continue;
             }
+            if (!entry.getKey().isEmpty() && !Character.isUpperCase(entry.getKey().charAt(0))) {
+                // ANTLR has both rule names and their values if the value is a plain string (TEST: 'test';).
+                // but the ruleIndexMap isn't about values-to-indexes, so we're skipping this value
+                continue;
+            }
             RuleStartState ruleStartState =
                     getCachedLexer().getATN().ruleToStartState[ruleIndexMap.get(entry.getKey())];
             rulesByTheirTypesMap.put(entry.getValue(), ruleStartState);

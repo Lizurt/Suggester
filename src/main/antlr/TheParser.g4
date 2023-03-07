@@ -7,10 +7,4 @@ options {
     tokenVocab = TheLexer;
 }
 
-hello_world : HELLO who;
-
-who : (world | WORK | lizurt) | hello_world;
-
-world : WORLD;
-
-lizurt : LIZURT;
+hello_world : IDENTIFIER;
