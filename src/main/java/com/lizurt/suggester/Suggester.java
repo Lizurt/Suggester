@@ -3,18 +3,17 @@ package com.lizurt.suggester;
 import java.util.*;
 
 import com.lizurt.suggester.factories.LexerAndParserFactory;
-import com.lizurt.util.PermissiveSimpleLinkedList;
 import lombok.Getter;
 import lombok.Setter;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
-import org.antlr.v4.tool.DOTGenerator;
-import org.antlr.v4.tool.Grammar;
 import org.apache.commons.lang3.NotImplementedException;
 
 public class Suggester {
+    private final Set<ATNState> bannedRules = new HashSet<>();
+
     private final ParserWrapper parserWrapper;
 
     private final LexerWrapper lexerWrapper;
@@ -33,9 +32,25 @@ public class Suggester {
         this(new LexerWrapper(lexerAndParserFactory), new ParserWrapper(lexerAndParserFactory));
     }
 
-    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper) {
+    public Suggester(LexerAndParserFactory lexerAndParserFactory, Set<String> rawBannedStates) {
+        this(
+                new LexerWrapper(lexerAndParserFactory),
+                new ParserWrapper(lexerAndParserFactory),
+                rawBannedStates
+        );
+    }
+
+    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper, Set<String> rawBannedStates) {
+        Map<String, Integer> tokenTypeMap = lexerWrapper.getCachedLexer().getTokenTypeMap();
+        for (String rawBannedState : rawBannedStates) {
+            this.bannedRules.add(lexerWrapper.getRuleByItsType(tokenTypeMap.get(rawBannedState)));
+        }
         this.lexerWrapper = lexerWrapper;
         this.parserWrapper = parserWrapper;
+    }
+
+    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper) {
+        this(lexerWrapper, parserWrapper, new HashSet<>());
     }
 
     // endregion
@@ -155,6 +170,7 @@ public class Suggester {
             List<? extends Token> tokens,
             String originalText
     ) {
+
         // it's raw because it can contain chars that should be skipped according to user's language rules
         String rawTextToComplete = originalText.substring(
                 tokens.get(greediestState.getConsumedTokensAmt() - 1).getStopIndex() + 1
@@ -198,6 +214,10 @@ public class Suggester {
             DependableATNState currDependableATNState = lexerStatesToCheck.poll();
             ATNState currLexerState = currDependableATNState.getAtnState();
             StringBuilder sbCurrSuggestion = currDependableATNState.getSbSuggestion();
+            if (bannedRules.contains(currLexerState)) {
+                // no suggestions for unwanted rules (the ones that user define)
+                continue;
+            }
             if (currLexerState instanceof RuleStopState) {
                 if (suggestableRulesStopStates.contains(currLexerState)) {
                     // we got a suggestion! Let's add it to the list and keep searching a new one.

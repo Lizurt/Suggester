@@ -59,7 +59,11 @@ public class TestApp {
         );
         LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
         ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);
-        Suggester suggester = new Suggester(lexerWrapper, parserWrapper);
+        Suggester suggester = new Suggester(
+                lexerWrapper,
+                parserWrapper,
+                Set.of("IDENTIFIER", "IDENTIFIER_START", "IDENTIFIER_PART")
+        );
         suggester.setCasePreference(CasePreference.LOWER);
         while (true) {
             System.out.print(">> ");
