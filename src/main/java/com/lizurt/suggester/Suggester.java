@@ -10,6 +10,8 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.IntervalSet;
+import org.antlr.v4.tool.DOTGenerator;
+import org.antlr.v4.tool.Grammar;
 import org.apache.commons.lang3.NotImplementedException;
 
 public class Suggester {
@@ -178,7 +180,7 @@ public class Suggester {
         // e.g. "h" for "hello", we'll wait for full "hello" instead
         Set<ATNState> suggestableRulesStopStates = new HashSet<>();
         Set<Transition> closestTokenConsumingTransitions = getClosestTokenConsumingTransitions(
-                greediestState.getAtnState()
+                greediestState
         );
         for (Transition transition : closestTokenConsumingTransitions) {
             for (Interval interval : transition.label().getIntervals()) {
@@ -389,18 +391,18 @@ public class Suggester {
         return result;
     }
 
-    private Set<Transition> getClosestTokenConsumingTransitions(ATNState startParserState) {
+    private Set<Transition> getClosestTokenConsumingTransitions(DependableATNState startParserState) {
         Set<Transition> closestTokenConsumingTransitions = new HashSet<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> parserStatesToCheck = new LinkedList<>();
         parserStatesToCheck.addFirst(new DependableATNState(
-                startParserState,
-                null,
-                null,
+                startParserState.getAtnState(),
+                startParserState.getPrevState(),
+                startParserState.getCallerTransition(),
                 null,
                 -1,
                 -1,
-                startParserState.getNumberOfTransitions(),
+                -1,
                 null
         ));
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
@@ -417,7 +419,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            currDependableParserState.getCallerTransition().getFollowingState().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 }
@@ -443,7 +445,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getOtherRuleReference().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 } else {
@@ -455,7 +457,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getFollowingState().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 }
