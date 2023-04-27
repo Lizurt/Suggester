@@ -5,13 +5,13 @@ import lombok.Getter;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.RuleStartState;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.tool.ANTLRToolListener;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class LexerWrapper {
     private final LexerFactory lexerFactory;
@@ -21,22 +21,11 @@ public class LexerWrapper {
 
     private Map<Integer, RuleStartState> rulesByTheirTypesMap = new HashMap<>();
 
-    static class TokenizationResult {
-        public List<? extends Token> tokens;
-        public String untokenizedText = "";
-    }
-
     public LexerWrapper(LexerFactory lexerFactory) {
         super();
         this.lexerFactory = lexerFactory;
         cachedLexer = createLexer("");
         cacheRulesByTheirTypes();
-    }
-
-    public TokenizationResult tokenizeNonDefaultChannel(String input) {
-        TokenizationResult result = tokenize(input);
-        result.tokens = result.tokens.stream().filter(t -> t.getChannel() == 0).collect(Collectors.toList());
-        return result;
     }
 
     public RuleStartState getRuleByItsType(int type) {
@@ -62,20 +51,41 @@ public class LexerWrapper {
         }
     }
     
-    private TokenizationResult tokenize(String input) {
+    public List<? extends Token> tokenize(String input) {
         Lexer lexer = this.createLexer(input);
         lexer.removeErrorListeners();
-        final TokenizationResult result = new TokenizationResult();
+        return lexer.getAllTokens();
+    }
+
+    // it's being used to generate textToAutocomplete. We can't say for sure what chars we need to skip. Some languages
+    // skip whitespaces, some do not. Or maybe they skip other chars? No time to analyse the whole ATN,
+    // just add everything that our lexer didn't skip.
+    public String getAllNonSkippedChars(String input) {
+        Lexer lexer = this.createLexer(input);
+        lexer.removeErrorListeners();
+        StringBuilder sbResult = new StringBuilder();
         ANTLRErrorListener newErrorListener = new BaseErrorListener() {
             @Override
-            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
-                    int charPositionInLine, String msg, RecognitionException e) throws ParseCancellationException {
-                result.untokenizedText = input.substring(charPositionInLine); // intended side effect
+            public void syntaxError(
+                    Recognizer<?, ?> recognizer,
+                    Object offendingSymbol,
+                    int line,
+                    int charPositionInLine,
+                    String msg,
+                    RecognitionException e
+            ) throws ParseCancellationException {
+                sbResult.append(input.charAt(charPositionInLine));
             }
         };
         lexer.addErrorListener(newErrorListener);
-        result.tokens = lexer.getAllTokens();
-        return result;
+        Token token;
+        while ((token = lexer.nextToken()) != null) {
+            if (token.getType() == Token.EOF) {
+                break;
+            }
+            sbResult.append(token.getText());
+        }
+        return sbResult.toString();
     }
 
     private Lexer createLexer(CharStream input) {

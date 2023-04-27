@@ -38,23 +38,19 @@ public class Suggester {
         this.parserWrapper = parserWrapper;
     }
 
-    private LexerWrapper.TokenizationResult tokenizeInput(String input) {
-        return lexerWrapper.tokenizeNonDefaultChannel(input);
-    }
-
     // endregion
 
     // "hello i generate (and return) suggestions into my own class depending on input which is also in my class"
     public List<String> generateAndGetSuggestions(String input) {
-        LexerWrapper.TokenizationResult tokenizationResult = tokenizeInput(input);
+        List<? extends Token> tokens = lexerWrapper.tokenize(input);
         List<ATNState> initialParserStates = parserWrapper.getInitialAtnStates();
         List<String> suggestions = new ArrayList<>();
         for (ATNState initialState : initialParserStates) {
             DependableATNState greediestParserState = getGreediestParserState(
                     initialState,
-                    tokenizationResult.tokens
+                    tokens
             );
-            suggestions.addAll(generateAndGetSuggestions(greediestParserState, tokenizationResult));
+            suggestions.addAll(generateAndGetSuggestions(greediestParserState, tokens, input));
         }
         return suggestions;
     }
@@ -153,26 +149,17 @@ public class Suggester {
         return greediestParserState;
     }
 
-    // at this parser greediestState we try to generate suggestions based on tokenizationResult
+    // at this parser greediestState we try to generate suggestions based on tokens
     private List<String> generateAndGetSuggestions(
             DependableATNState greediestState,
-            LexerWrapper.TokenizationResult tokenizationResult
+            List<? extends Token> tokens,
+            String originalText
     ) {
-        String textToComplete = tokenizationResult.untokenizedText;
-        List<? extends Token> tokens = tokenizationResult.tokens;
-        if (greediestState.getConsumedTokensAmt() < tokens.size()) {
-            // oops seems the tokens don't fit in the parser rules.
-            // Let's give it a second chance and assume that all tokens after greediest state token index are just
-            // our untokenized text.
-            StringBuilder sbNewTextToComplete = new StringBuilder();
-            for (int i = greediestState.getConsumedTokensAmt(); i < tokens.size(); i++) {
-                sbNewTextToComplete.append(tokens.get(i).getText());
-            }
-            // don't forget the untokenized text if lexer found some
-            sbNewTextToComplete.append(textToComplete);
-            textToComplete = sbNewTextToComplete.toString();
-            tokens = tokens.subList(0, greediestState.getConsumedTokensAmt());
-        }
+        // it's raw because it can contain chars that should be skipped according to user's language rules
+        String rawTextToComplete = originalText.substring(
+                tokens.get(greediestState.getConsumedTokensAmt() - 1).getStopIndex() + 1
+        );
+        String textToComplete = lexerWrapper.getAllNonSkippedChars(rawTextToComplete);
         List<String> suggestions = new ArrayList<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> lexerStatesToCheck = new LinkedList<>();
