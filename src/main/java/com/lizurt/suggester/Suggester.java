@@ -43,7 +43,12 @@ public class Suggester {
     public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper, Set<String> rawBannedStates) {
         Map<String, Integer> tokenTypeMap = lexerWrapper.getCachedLexer().getTokenTypeMap();
         for (String rawBannedState : rawBannedStates) {
-            this.bannedRules.add(lexerWrapper.getRuleByItsType(tokenTypeMap.get(rawBannedState)));
+            Integer tokenType = tokenTypeMap.get(rawBannedState);
+            if (tokenType == null) {
+                throw new IllegalArgumentException("The lexer rule \"" + rawBannedState + "\" doesn't exist for " +
+                        "\"" + lexerWrapper.getCachedLexer() + "\".");
+            }
+            this.bannedRules.add(lexerWrapper.getRuleByItsType(tokenType));
         }
         this.lexerWrapper = lexerWrapper;
         this.parserWrapper = parserWrapper;
@@ -170,11 +175,13 @@ public class Suggester {
             List<? extends Token> tokens,
             String originalText
     ) {
-
         // it's raw because it can contain chars that should be skipped according to user's language rules
-        String rawTextToComplete = originalText.substring(
-                tokens.get(greediestState.getConsumedTokensAmt() - 1).getStopIndex() + 1
-        );
+        String rawTextToComplete = originalText;
+        if (greediestState.getConsumedTokensAmt() > 0) {
+            rawTextToComplete = originalText.substring(
+                    tokens.get(greediestState.getConsumedTokensAmt() - 1).getStopIndex() + 1
+            );
+        }
         String textToComplete = lexerWrapper.getAllNonSkippedChars(rawTextToComplete);
         List<String> suggestions = new ArrayList<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack

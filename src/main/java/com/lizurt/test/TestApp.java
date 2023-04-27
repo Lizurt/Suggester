@@ -23,7 +23,7 @@ import java.util.*;
 
 public class TestApp {
     public static void main(String[] args) throws IOException {
-        if (true) {
+        if (false) {
             Grammar grammar = Grammar.load("src/main/antlr/TheLexer.g4");
             DOTGenerator dotGenerator = new DOTGenerator(grammar);
             StringBuilder sbDot = new StringBuilder();
@@ -55,14 +55,14 @@ public class TestApp {
             fw.close();
         }
         LexerAndParserFactory lexerAndParserfactory = new ReflectiveLexerAndParserFactory(
-                the.grammar.TheLexer.class, the.grammar.TheParser.class
+                grammar.java.Java8Lexer.class, grammar.java.Java8Parser.class
         );
         LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
         ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);
         Suggester suggester = new Suggester(
                 lexerWrapper,
                 parserWrapper,
-                Set.of("IDENTIFIER", "IDENTIFIER_START", "IDENTIFIER_PART")
+                Set.of("Identifier")
         );
         suggester.setCasePreference(CasePreference.LOWER);
         while (true) {
