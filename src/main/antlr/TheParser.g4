@@ -7,4 +7,6 @@ options {
     tokenVocab = TheLexer;
 }
 
-hello_world : IDENTIFIER;
+hello_world : HELLO (who (AND who)*)? MY_NAME_IS IDENTIFIER AND ITS VERY+ COOL;
+
+who : WORLD | STRANGER;

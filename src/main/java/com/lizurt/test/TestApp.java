@@ -8,24 +8,62 @@ import com.lizurt.suggester.factories.LexerAndParserFactory;
 import com.lizurt.suggester.factories.ParserFactory;
 import com.lizurt.suggester.factories.ReflectiveLexerAndParserFactory;
 import org.antlr.v4.Tool;
+import org.antlr.v4.runtime.atn.ATNState;
 import org.antlr.v4.runtime.atn.RuleStartState;
 import org.antlr.v4.tool.DOTGenerator;
 import org.antlr.v4.tool.Grammar;
 import the.grammar.TheLexer;
 import the.grammar.TheParser;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 public class TestApp {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        if (false) {
+            Grammar grammar = Grammar.load("src/main/antlr/TheLexer.g4");
+            DOTGenerator dotGenerator = new DOTGenerator(grammar);
+            StringBuilder sbDot = new StringBuilder();
+            for (ATNState atnState : grammar.getATN().ruleToStartState) {
+                String text = dotGenerator.getDOT(atnState);
+                text = text.substring(26, text.length() - 2);
+                sbDot.append(text);
+            }
+            sbDot.insert(0, "digraph ATN {\nrankdir=LR;");
+            sbDot.append("}");
+            File file = new File("thelexer.dot");
+            FileWriter fw = new FileWriter(file);
+            fw.write(sbDot.toString());
+            fw.close();
+
+            sbDot = new StringBuilder();
+            grammar = Grammar.load("src/main/antlr/TheParser.g4");
+            dotGenerator = new DOTGenerator(grammar);
+            for (ATNState atnState : grammar.getATN().ruleToStartState) {
+                String text = dotGenerator.getDOT(atnState);
+                text = text.substring(26, text.length() - 2);
+                sbDot.append(text);
+            }
+            sbDot.insert(0, "digraph ATN {\nrankdir=LR;");
+            sbDot.append("}");
+            file = new File("theparser.dot");
+            fw = new FileWriter(file);
+            fw.write(sbDot.toString());
+            fw.close();
+        }
         LexerAndParserFactory lexerAndParserfactory = new ReflectiveLexerAndParserFactory(
                 grammar.java.Java8Lexer.class, grammar.java.Java8Parser.class
         );
         LexerWrapper lexerWrapper = new LexerWrapper(lexerAndParserfactory);
         ParserWrapper parserWrapper = new ParserWrapper(lexerAndParserfactory);
-        Suggester suggester = new Suggester(lexerWrapper, parserWrapper);
+        Suggester suggester = new Suggester(
+                lexerWrapper,
+                parserWrapper,
+                Set.of("Identifier")
+        );
         suggester.setCasePreference(CasePreference.LOWER);
         while (true) {
             System.out.print(">> ");

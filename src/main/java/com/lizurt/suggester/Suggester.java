@@ -3,7 +3,6 @@ package com.lizurt.suggester;
 import java.util.*;
 
 import com.lizurt.suggester.factories.LexerAndParserFactory;
-import com.lizurt.util.PermissiveSimpleLinkedList;
 import lombok.Getter;
 import lombok.Setter;
 import org.antlr.v4.runtime.Token;
@@ -13,6 +12,8 @@ import org.antlr.v4.runtime.misc.IntervalSet;
 import org.apache.commons.lang3.NotImplementedException;
 
 public class Suggester {
+    private final Set<ATNState> bannedRules = new HashSet<>();
+
     private final ParserWrapper parserWrapper;
 
     private final LexerWrapper lexerWrapper;
@@ -31,28 +32,45 @@ public class Suggester {
         this(new LexerWrapper(lexerAndParserFactory), new ParserWrapper(lexerAndParserFactory));
     }
 
-    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper) {
+    public Suggester(LexerAndParserFactory lexerAndParserFactory, Set<String> rawBannedStates) {
+        this(
+                new LexerWrapper(lexerAndParserFactory),
+                new ParserWrapper(lexerAndParserFactory),
+                rawBannedStates
+        );
+    }
+
+    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper, Set<String> rawBannedStates) {
+        Map<String, Integer> tokenTypeMap = lexerWrapper.getCachedLexer().getTokenTypeMap();
+        for (String rawBannedState : rawBannedStates) {
+            Integer tokenType = tokenTypeMap.get(rawBannedState);
+            if (tokenType == null) {
+                throw new IllegalArgumentException("The lexer rule \"" + rawBannedState + "\" doesn't exist for " +
+                        "\"" + lexerWrapper.getCachedLexer() + "\".");
+            }
+            this.bannedRules.add(lexerWrapper.getRuleByItsType(tokenType));
+        }
         this.lexerWrapper = lexerWrapper;
         this.parserWrapper = parserWrapper;
     }
 
-    private LexerWrapper.TokenizationResult tokenizeInput(String input) {
-        return lexerWrapper.tokenizeNonDefaultChannel(input);
+    public Suggester(LexerWrapper lexerWrapper, ParserWrapper parserWrapper) {
+        this(lexerWrapper, parserWrapper, new HashSet<>());
     }
 
     // endregion
 
     // "hello i generate (and return) suggestions into my own class depending on input which is also in my class"
     public List<String> generateAndGetSuggestions(String input) {
-        LexerWrapper.TokenizationResult tokenizationResult = tokenizeInput(input);
+        List<? extends Token> tokens = lexerWrapper.tokenize(input);
         List<ATNState> initialParserStates = parserWrapper.getInitialAtnStates();
         List<String> suggestions = new ArrayList<>();
         for (ATNState initialState : initialParserStates) {
             DependableATNState greediestParserState = getGreediestParserState(
                     initialState,
-                    tokenizationResult.tokens
+                    tokens
             );
-            suggestions.addAll(generateAndGetSuggestions(greediestParserState, tokenizationResult));
+            suggestions.addAll(generateAndGetSuggestions(greediestParserState, tokens, input));
         }
         return suggestions;
     }
@@ -151,26 +169,20 @@ public class Suggester {
         return greediestParserState;
     }
 
-    // at this parser greediestState we try to generate suggestions based on tokenizationResult
+    // at this parser greediestState we try to generate suggestions based on tokens
     private List<String> generateAndGetSuggestions(
             DependableATNState greediestState,
-            LexerWrapper.TokenizationResult tokenizationResult
+            List<? extends Token> tokens,
+            String originalText
     ) {
-        String textToComplete = tokenizationResult.untokenizedText;
-        List<? extends Token> tokens = tokenizationResult.tokens;
-        if (greediestState.getConsumedTokensAmt() < tokens.size()) {
-            // oops seems the tokens don't fit in the parser rules.
-            // Let's give it a second chance and assume that all tokens after greediest state token index are just
-            // our untokenized text.
-            StringBuilder sbNewTextToComplete = new StringBuilder();
-            for (int i = greediestState.getConsumedTokensAmt(); i < tokens.size(); i++) {
-                sbNewTextToComplete.append(tokens.get(i).getText());
-            }
-            // don't forget the untokenized text if lexer found some
-            sbNewTextToComplete.append(textToComplete);
-            textToComplete = sbNewTextToComplete.toString();
-            tokens = tokens.subList(0, greediestState.getConsumedTokensAmt());
+        // it's raw because it can contain chars that should be skipped according to user's language rules
+        String rawTextToComplete = originalText;
+        if (greediestState.getConsumedTokensAmt() > 0) {
+            rawTextToComplete = originalText.substring(
+                    tokens.get(greediestState.getConsumedTokensAmt() - 1).getStopIndex() + 1
+            );
         }
+        String textToComplete = lexerWrapper.getAllNonSkippedChars(rawTextToComplete);
         List<String> suggestions = new ArrayList<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> lexerStatesToCheck = new LinkedList<>();
@@ -178,7 +190,7 @@ public class Suggester {
         // e.g. "h" for "hello", we'll wait for full "hello" instead
         Set<ATNState> suggestableRulesStopStates = new HashSet<>();
         Set<Transition> closestTokenConsumingTransitions = getClosestTokenConsumingTransitions(
-                greediestState.getAtnState()
+                greediestState
         );
         for (Transition transition : closestTokenConsumingTransitions) {
             for (Interval interval : transition.label().getIntervals()) {
@@ -209,6 +221,10 @@ public class Suggester {
             DependableATNState currDependableATNState = lexerStatesToCheck.poll();
             ATNState currLexerState = currDependableATNState.getAtnState();
             StringBuilder sbCurrSuggestion = currDependableATNState.getSbSuggestion();
+            if (bannedRules.contains(currLexerState)) {
+                // no suggestions for unwanted rules (the ones that user define)
+                continue;
+            }
             if (currLexerState instanceof RuleStopState) {
                 if (suggestableRulesStopStates.contains(currLexerState)) {
                     // we got a suggestion! Let's add it to the list and keep searching a new one.
@@ -389,18 +405,18 @@ public class Suggester {
         return result;
     }
 
-    private Set<Transition> getClosestTokenConsumingTransitions(ATNState startParserState) {
+    private Set<Transition> getClosestTokenConsumingTransitions(DependableATNState startParserState) {
         Set<Transition> closestTokenConsumingTransitions = new HashSet<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> parserStatesToCheck = new LinkedList<>();
         parserStatesToCheck.addFirst(new DependableATNState(
-                startParserState,
-                null,
-                null,
+                startParserState.getAtnState(),
+                startParserState.getPrevState(),
+                startParserState.getCallerTransition(),
                 null,
                 -1,
                 -1,
-                startParserState.getNumberOfTransitions(),
+                -1,
                 null
         ));
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
@@ -417,7 +433,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            currDependableParserState.getCallerTransition().getFollowingState().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 }
@@ -443,7 +459,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getOtherRuleReference().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 } else {
@@ -455,7 +471,7 @@ public class Suggester {
                             null,
                             -1,
                             -1,
-                            transitionAnalyseResult.getFollowingState().getNumberOfTransitions(),
+                            -1,
                             null
                     ));
                 }
