@@ -60,7 +60,11 @@ public class Suggester {
 
     // endregion
 
-    // "hello i generate (and return) suggestions into my own class depending on input which is also in my class"
+    /**
+     * Generates a list of suggestions depending on input text and grammar provided in a constructor
+     * @param input Input text to complete
+     * @return List of suggestions
+     */
     public List<String> generateAndGetSuggestions(String input) {
         List<? extends Token> tokens = lexerWrapper.tokenize(input);
         List<ATNState> initialParserStates = parserWrapper.getInitialAtnStates();
@@ -75,6 +79,13 @@ public class Suggester {
         return suggestions;
     }
 
+    /**
+     * Gets a first ATN state met where all tokens were consumed or a first met ATN state where maximum amount of
+     * tokens were consumed.
+     * @param startParserState An ATN state to start searching from
+     * @param tokens A list of tokens to "consume" while scanning an ATN
+     * @return An ATN state where maximum amount of tokens were consumed
+     */
     private DependableATNState getGreediestParserState(
             ATNState startParserState,
             List<? extends Token> tokens
@@ -93,8 +104,6 @@ public class Suggester {
         );
         Stack<DependableATNState> parserStatesToCheck = new Stack<>();
         parserStatesToCheck.push(greediestParserState);
-        // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
-        // but at least quite close to it
         statesLoop:
         while (!parserStatesToCheck.isEmpty()) {
             DependableATNState currDependableATNState = parserStatesToCheck.pop();
@@ -168,7 +177,14 @@ public class Suggester {
         return greediestParserState;
     }
 
-    // at this parser greediestState we try to generate suggestions based on tokens
+    /**
+     * Generates a list of suggestions based on a given text fragment, tokens in the text and a state that consumed
+     * maximum amount of tokens.
+     * @param greediestState The state that consumed maximum amount of tokens
+     * @param tokens The tokens generated based on the input text
+     * @param originalText The input text to complete
+     * @return The list of suggestions
+     */
     private List<String> generateAndGetSuggestions(
             DependableATNState greediestState,
             List<? extends Token> tokens,

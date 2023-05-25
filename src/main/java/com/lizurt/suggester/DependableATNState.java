@@ -2,6 +2,7 @@ package com.lizurt.suggester;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.antlr.v4.runtime.atn.ATNState;
 
@@ -17,6 +18,7 @@ import java.util.Set;
 // When dependingStatesAmount reaches 0, we cut A -> C branch like we said earlier. That means we remove this state
 // from the checking list, who is actually a linked list. In order to remove the state, we have to use Node.
 @Getter
+@Setter
 @AllArgsConstructor
 public class DependableATNState {
     // the state itself
@@ -32,13 +34,13 @@ public class DependableATNState {
     private StringBuilder sbSuggestion;
 
     // how many chars we already suggested at this state
-    private int suggestedCharsAmount;
+    private int suggestedCharsAmount = -1;
 
     // at which input char we're getting a suggestion for
-    private int suggestingAtInputPos;
+    private int suggestingAtInputPos = -1;
 
     // how many tokens we consumed at this state
-    private int consumedTokensAmt;
+    private int consumedTokensAmt = -1;
 
     // which transitions' following states are banned to be checked. Used in star and plus blocks where we don't want
     // to loop infinitely
