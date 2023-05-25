@@ -91,14 +91,13 @@ public class Suggester {
                 0,
                 null
         );
-        // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
-        LinkedList<DependableATNState> parserStatesToCheck = new LinkedList<>();
-        parserStatesToCheck.addFirst(greediestParserState);
+        Stack<DependableATNState> parserStatesToCheck = new Stack<>();
+        parserStatesToCheck.push(greediestParserState);
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
         statesLoop:
         while (!parserStatesToCheck.isEmpty()) {
-            DependableATNState currDependableATNState = parserStatesToCheck.poll();
+            DependableATNState currDependableATNState = parserStatesToCheck.pop();
             ATNState currParserState = currDependableATNState.getAtnState();
             if (currDependableATNState.getConsumedTokensAmt() == tokens.size()) {
                 return currDependableATNState;
@@ -110,7 +109,7 @@ public class Suggester {
                 if (currDependableATNState.getCallerTransition() != null) {
                     // someone referenced this rule (probably via RuleTransition), we need to add its following state
                     // to the to-check list
-                    parserStatesToCheck.addFirst(new DependableATNState(
+                    parserStatesToCheck.push(new DependableATNState(
                             currDependableATNState.getCallerTransition().getFollowingState(),
                             currDependableATNState,
                             currDependableATNState.getCallerTransition().getSourceState().getCallerTransition(),
@@ -150,7 +149,7 @@ public class Suggester {
                             consumedTokensAmt,
                             null
                     );
-                    parserStatesToCheck.addFirst(referencedState);
+                    parserStatesToCheck.push(referencedState);
                 } else {
                     DependableATNState followingState = new DependableATNState(
                             transitionAnalyseResult.getFollowingState(),
@@ -162,7 +161,7 @@ public class Suggester {
                             consumedTokensAmt,
                             null
                     );
-                    parserStatesToCheck.addFirst(followingState);
+                    parserStatesToCheck.push(followingState);
                 }
             }
         }
@@ -184,8 +183,7 @@ public class Suggester {
         }
         String textToComplete = lexerWrapper.getAllNonSkippedChars(rawTextToComplete);
         List<String> suggestions = new ArrayList<>();
-        // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
-        LinkedList<DependableATNState> lexerStatesToCheck = new LinkedList<>();
+        Stack<DependableATNState> lexerStatesToCheck = new Stack<>();
         // we'll add a suggestion when will have reached one of these states, so we won't add incomplete suggestions,
         // e.g. "h" for "hello", we'll wait for full "hello" instead
         Set<ATNState> suggestableRulesStopStates = new HashSet<>();
@@ -200,7 +198,7 @@ public class Suggester {
                         continue;
                     }
                     RuleStartState lexerRuleToCheck = lexerWrapper.getRuleByItsType(val);
-                    lexerStatesToCheck.addFirst(new DependableATNState(
+                    lexerStatesToCheck.push(new DependableATNState(
                             lexerRuleToCheck,
                             null,
                             null,
@@ -218,7 +216,7 @@ public class Suggester {
         // but at least quite close to it
         statesLoop:
         while (!lexerStatesToCheck.isEmpty()) {
-            DependableATNState currDependableATNState = lexerStatesToCheck.poll();
+            DependableATNState currDependableATNState = lexerStatesToCheck.pop();
             ATNState currLexerState = currDependableATNState.getAtnState();
             StringBuilder sbCurrSuggestion = currDependableATNState.getSbSuggestion();
             if (bannedRules.contains(currLexerState)) {
@@ -236,7 +234,7 @@ public class Suggester {
                 if (currDependableATNState.getCallerTransition() != null) {
                     // someone referenced this rule (probably via RuleTransition), we need to add its following state
                     // to the to-check list
-                    lexerStatesToCheck.addFirst(new DependableATNState(
+                    lexerStatesToCheck.push(new DependableATNState(
                             currDependableATNState.getCallerTransition().getFollowingState(),
                             currDependableATNState,
                             currDependableATNState.getCallerTransition().getSourceState().getCallerTransition(),
@@ -323,7 +321,7 @@ public class Suggester {
                             -1,
                             bannedStates
                     );
-                    lexerStatesToCheck.addFirst(referencedState);
+                    lexerStatesToCheck.push(referencedState);
                 } else {
                     DependableATNState followingState = new DependableATNState(
                             transitionAnalyseResult.getFollowingState(),
@@ -335,7 +333,7 @@ public class Suggester {
                             -1,
                             bannedStates
                     );
-                    lexerStatesToCheck.addFirst(followingState);
+                    lexerStatesToCheck.push(followingState);
                 }
             }
         }
