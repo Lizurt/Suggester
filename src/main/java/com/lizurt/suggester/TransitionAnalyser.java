@@ -188,7 +188,7 @@ public class TransitionAnalyser {
                 true,
                 false,
                 null,
-                ruleTransition.target,
+                (RuleStartState) ruleTransition.target,
                 ruleTransition.followState,
                 sourceState
         );

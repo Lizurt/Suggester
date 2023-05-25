@@ -3,6 +3,7 @@ package com.lizurt.suggester;
 import lombok.Data;
 import lombok.NonNull;
 import org.antlr.v4.runtime.atn.ATNState;
+import org.antlr.v4.runtime.atn.RuleStartState;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
 @Data
@@ -16,7 +17,7 @@ public class TransitionAnalyseResult {
     // character (int representation)
     private final IntervalSet parserToLexerRuleNumbersOrLexerCharInts;
 
-    private final ATNState otherRuleReference;
+    private final RuleStartState otherRuleReference;
 
     @NonNull
     private final ATNState followingState;

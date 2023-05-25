@@ -24,7 +24,7 @@ import java.util.*;
 public class TestApp {
     public static void main(String[] args) throws IOException {
         if (false) {
-            Grammar grammar = Grammar.load("src/main/antlr/TheLexer.g4");
+            Grammar grammar = Grammar.load("src/main/antlr/Java8Lexer.g4");
             DOTGenerator dotGenerator = new DOTGenerator(grammar);
             StringBuilder sbDot = new StringBuilder();
             for (ATNState atnState : grammar.getATN().ruleToStartState) {
@@ -40,7 +40,7 @@ public class TestApp {
             fw.close();
 
             sbDot = new StringBuilder();
-            grammar = Grammar.load("src/main/antlr/TheParser.g4");
+            grammar = Grammar.load("src/main/antlr/Java8Parser.g4");
             dotGenerator = new DOTGenerator(grammar);
             for (ATNState atnState : grammar.getATN().ruleToStartState) {
                 String text = dotGenerator.getDOT(atnState);

@@ -67,9 +67,9 @@ public class Suggester {
      */
     public List<String> generateAndGetSuggestions(String input) {
         List<? extends Token> tokens = lexerWrapper.tokenize(input);
-        List<ATNState> initialParserStates = parserWrapper.getInitialAtnStates();
+        List<RuleStartState> initialParserStates = parserWrapper.getInitialAtnStates();
         List<String> suggestions = new ArrayList<>();
-        for (ATNState initialState : initialParserStates) {
+        for (RuleStartState initialState : initialParserStates) {
             DependableATNState greediestParserState = getGreediestParserState(
                     initialState,
                     tokens
@@ -80,45 +80,35 @@ public class Suggester {
     }
 
     /**
-     * Gets a first ATN state met where all tokens were consumed or a first met ATN state where maximum amount of
-     * tokens were consumed.
+     * Gets a first met non-banned ATN state where maximum amount of tokens were consumed.
      * @param startParserState An ATN state to start searching from
      * @param tokens A list of tokens to "consume" while scanning an ATN
      * @return An ATN state where maximum amount of tokens were consumed
      */
     private DependableATNState getGreediestParserState(
-            ATNState startParserState,
+            RuleStartState startParserState,
             List<? extends Token> tokens
     ) {
         // the state where we consumed maximum amount of available tokens.
         // If the state consumed all the tokens (tokens.len == index) we can generate suggestions
-        DependableATNState greediestParserState = new DependableATNState(
-                startParserState,
-                null,
-                null,
-                null,
-                0,
-                0,
-                0,
-                null
-        );
+        DependableATNState greediestParserState = new DependableATNState();
+        greediestParserState.setAtnRuleState(startParserState);
+        greediestParserState.setAtnState(startParserState);
+        greediestParserState.setConsumedTokensAmt(0);
         Stack<DependableATNState> parserStatesToCheck = new Stack<>();
         parserStatesToCheck.push(greediestParserState);
-        statesLoop:
         while (!parserStatesToCheck.isEmpty()) {
             DependableATNState currDependableATNState = parserStatesToCheck.pop();
             ATNState currParserState = currDependableATNState.getAtnState();
             if (currDependableATNState.getConsumedTokensAmt() == tokens.size()) {
-                return currDependableATNState;
-            }
-            if (currDependableATNState.getConsumedTokensAmt() > greediestParserState.getConsumedTokensAmt()) {
-                greediestParserState = currDependableATNState;
+                break;
             }
             if (currParserState instanceof RuleStopState) {
                 if (currDependableATNState.getCallerTransition() != null) {
                     // someone referenced this rule (probably via RuleTransition), we need to add its following state
                     // to the to-check list
                     parserStatesToCheck.push(new DependableATNState(
+                            currDependableATNState.getCallerTransition().getSourceState().getAtnRuleState(),
                             currDependableATNState.getCallerTransition().getFollowingState(),
                             currDependableATNState,
                             currDependableATNState.getCallerTransition().getSourceState().getCallerTransition(),
@@ -126,7 +116,8 @@ public class Suggester {
                             currDependableATNState.getSuggestedCharsAmount(),
                             currDependableATNState.getSuggestingAtInputPos(),
                             currDependableATNState.getConsumedTokensAmt(),
-                            null
+                            null,
+                            currDependableATNState.isLastTokenConsumedViaBannedRule()
                     ));
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
@@ -144,34 +135,52 @@ public class Suggester {
                 if (!transitionAnalyseResult.isTokenMatchingPattern()) {
                     continue;
                 }
+                boolean lastTokenConsumedViaBannedRule = false;
                 if (transitionAnalyseResult.isSupposedToConsumeToken()) {
                     consumedTokensAmt++;
-                }
-                if (transitionAnalyseResult.getOtherRuleReference() != null) {
-                    DependableATNState referencedState = new DependableATNState(
-                            transitionAnalyseResult.getOtherRuleReference(),
-                            currDependableATNState,
-                            transitionAnalyseResult,
-                            null,
-                            -1,
-                            -1,
-                            consumedTokensAmt,
-                            null
-                    );
-                    parserStatesToCheck.push(referencedState);
+                    IntervalSet intervals = transitionAnalyseResult.getParserToLexerRuleNumbersOrLexerCharInts();
+                    intervalLoop:
+                    for (Interval interval : intervals.getIntervals()) {
+                        for (int val = interval.a; val <= interval.b; val++) {
+                            if (val < 0) {
+                                // EOF transitions have -1 as their label
+                                continue;
+                            }
+                            RuleStartState rule = lexerWrapper.getRuleByItsType(val);
+                            if (bannedRules.contains(rule)) {
+                                lastTokenConsumedViaBannedRule = true;
+                                break intervalLoop;
+                            }
+                        }
+                    }
                 } else {
-                    DependableATNState followingState = new DependableATNState(
-                            transitionAnalyseResult.getFollowingState(),
-                            currDependableATNState,
-                            currDependableATNState.getCallerTransition(),
-                            null,
-                            -1,
-                            -1,
-                            consumedTokensAmt,
-                            null
-                    );
-                    parserStatesToCheck.push(followingState);
+                    lastTokenConsumedViaBannedRule = currDependableATNState.isLastTokenConsumedViaBannedRule();
                 }
+                DependableATNState nextState;
+                if (transitionAnalyseResult.getOtherRuleReference() != null) {
+                    nextState = new DependableATNState();
+                    nextState.setAtnRuleState(transitionAnalyseResult.getOtherRuleReference());
+                    nextState.setAtnState(transitionAnalyseResult.getOtherRuleReference());
+                    nextState.setPrevState(currDependableATNState);
+                    nextState.setCallerTransition(transitionAnalyseResult);
+                    nextState.setConsumedTokensAmt(consumedTokensAmt);
+                    nextState.setLastTokenConsumedViaBannedRule(lastTokenConsumedViaBannedRule);
+                } else {
+                    nextState = new DependableATNState();
+                    nextState.setAtnRuleState(currDependableATNState.getAtnRuleState());
+                    nextState.setAtnState(transitionAnalyseResult.getFollowingState());
+                    nextState.setPrevState(currDependableATNState);
+                    nextState.setCallerTransition(currDependableATNState.getCallerTransition());
+                    nextState.setConsumedTokensAmt(consumedTokensAmt);
+                    nextState.setLastTokenConsumedViaBannedRule(lastTokenConsumedViaBannedRule);
+                }
+                if (
+                        consumedTokensAmt > greediestParserState.getConsumedTokensAmt()
+                        && !nextState.isLastTokenConsumedViaBannedRule()
+                ) {
+                    greediestParserState = nextState;
+                }
+                parserStatesToCheck.push(nextState);
             }
         }
         return greediestParserState;
@@ -185,7 +194,7 @@ public class Suggester {
      * @param originalText The input text to complete
      * @return The list of suggestions
      */
-    private List<String> generateAndGetSuggestions(
+    private Collection<String> generateAndGetSuggestions(
             DependableATNState greediestState,
             List<? extends Token> tokens,
             String originalText
@@ -198,7 +207,13 @@ public class Suggester {
             );
         }
         String textToComplete = lexerWrapper.getAllNonSkippedChars(rawTextToComplete);
-        List<String> suggestions = new ArrayList<>();
+        Comparator<String> stringLenComparator = (s1, s2) -> {
+            if (s1.length() == s2.length()) {
+                return 0;
+            }
+            return s1.length() > s2.length() ? 1 : -1;
+        };
+        TreeSet<String> suggestions = new TreeSet<>(stringLenComparator);
         Stack<DependableATNState> lexerStatesToCheck = new Stack<>();
         // we'll add a suggestion when will have reached one of these states, so we won't add incomplete suggestions,
         // e.g. "h" for "hello", we'll wait for full "hello" instead
@@ -216,13 +231,15 @@ public class Suggester {
                     RuleStartState lexerRuleToCheck = lexerWrapper.getRuleByItsType(val);
                     lexerStatesToCheck.push(new DependableATNState(
                             lexerRuleToCheck,
+                            lexerRuleToCheck,
                             null,
                             null,
                             new StringBuilder(),
                             0,
                             0,
                             -1,
-                            new HashSet<>()
+                            new HashSet<>(),
+                            false
                     ));
                     suggestableRulesStopStates.add(lexerRuleToCheck.stopState);
                 }
@@ -244,13 +261,27 @@ public class Suggester {
                     // we got a suggestion! Let's add it to the list and keep searching a new one.
                     // We won't add empty ones
                     if (!sbCurrSuggestion.isEmpty()) {
-                        suggestions.add(sbCurrSuggestion.toString());
+                        boolean isSuggestionDuplicate = false;
+                        String newSuggestion = sbCurrSuggestion.toString();
+                        Iterator<String> iterator = suggestions.iterator();
+                        String suggestion;
+                        while (iterator.hasNext()) {
+                            suggestion = iterator.next();
+                            if (suggestion.equals(newSuggestion)) {
+                                isSuggestionDuplicate = true;
+                                break;
+                            }
+                        }
+                        if (!isSuggestionDuplicate) {
+                            suggestions.add(newSuggestion);
+                        }
                     }
                 }
                 if (currDependableATNState.getCallerTransition() != null) {
                     // someone referenced this rule (probably via RuleTransition), we need to add its following state
                     // to the to-check list
                     lexerStatesToCheck.push(new DependableATNState(
+                            currDependableATNState.getCallerTransition().getSourceState().getAtnRuleState(),
                             currDependableATNState.getCallerTransition().getFollowingState(),
                             currDependableATNState,
                             currDependableATNState.getCallerTransition().getSourceState().getCallerTransition(),
@@ -258,7 +289,8 @@ public class Suggester {
                             currDependableATNState.getSuggestedCharsAmount(),
                             currDependableATNState.getSuggestingAtInputPos(),
                             -1,
-                            currDependableATNState.getBannedStates()
+                            currDependableATNState.getBannedStates(),
+                            false
                     ));
                 }
                 // no infinite loops allowed. RuleStopStates references rules that reference this rule
@@ -329,17 +361,20 @@ public class Suggester {
                 if (transitionAnalyseResult.getOtherRuleReference() != null) {
                     DependableATNState referencedState = new DependableATNState(
                             transitionAnalyseResult.getOtherRuleReference(),
+                            transitionAnalyseResult.getOtherRuleReference(),
                             currDependableATNState,
                             transitionAnalyseResult,
                             sbSuggestion,
                             sbCurrSuggestion.length(),
                             atInputPos,
                             -1,
-                            bannedStates
+                            bannedStates,
+                            false
                     );
                     lexerStatesToCheck.push(referencedState);
                 } else {
                     DependableATNState followingState = new DependableATNState(
+                            currDependableATNState.getAtnRuleState(),
                             transitionAnalyseResult.getFollowingState(),
                             currDependableATNState,
                             currDependableATNState.getCallerTransition(),
@@ -347,7 +382,8 @@ public class Suggester {
                             sbCurrSuggestion.length(),
                             atInputPos,
                             -1,
-                            bannedStates
+                            bannedStates,
+                            false
                     );
                     lexerStatesToCheck.push(followingState);
                 }
@@ -423,16 +459,7 @@ public class Suggester {
         Set<Transition> closestTokenConsumingTransitions = new HashSet<>();
         // no we're not gonna system.arraycopy each time we want to pop an element, so linkedlist instead of stack
         LinkedList<DependableATNState> parserStatesToCheck = new LinkedList<>();
-        parserStatesToCheck.addFirst(new DependableATNState(
-                startParserState.getAtnState(),
-                startParserState.getPrevState(),
-                startParserState.getCallerTransition(),
-                null,
-                -1,
-                -1,
-                -1,
-                null
-        ));
+        parserStatesToCheck.addFirst(startParserState);
         // cheap way to avoid deep recursion here is to use stacks. They're not similar to recursion
         // but at least quite close to it
         while (!parserStatesToCheck.isEmpty()) {
@@ -441,6 +468,7 @@ public class Suggester {
             if (currParserState instanceof RuleStopState) {
                 if (currDependableParserState.getCallerTransition() != null) {
                     parserStatesToCheck.addFirst(new DependableATNState(
+                            currDependableParserState.getAtnRuleState(),
                             currDependableParserState.getCallerTransition().getFollowingState(),
                             currDependableParserState,
                             currDependableParserState.getCallerTransition().getSourceState().getCallerTransition(),
@@ -448,7 +476,8 @@ public class Suggester {
                             -1,
                             -1,
                             -1,
-                            null
+                            null,
+                            false
                     ));
                 }
 
@@ -468,17 +497,20 @@ public class Suggester {
                     // it references other rule states, we might get a proper state there!
                     parserStatesToCheck.addFirst(new DependableATNState(
                             transitionAnalyseResult.getOtherRuleReference(),
+                            transitionAnalyseResult.getOtherRuleReference(),
                             currDependableParserState,
                             transitionAnalyseResult,
                             null,
                             -1,
                             -1,
                             -1,
-                            null
+                            null,
+                            false
                     ));
                 } else {
                     // bruh, keep exploring the ATN branch then
                     parserStatesToCheck.addFirst(new DependableATNState(
+                            currDependableParserState.getAtnRuleState(),
                             transitionAnalyseResult.getFollowingState(),
                             currDependableParserState,
                             currDependableParserState.getCallerTransition(),
@@ -486,7 +518,8 @@ public class Suggester {
                             -1,
                             -1,
                             -1,
-                            null
+                            null,
+                            false
                     ));
                 }
             }

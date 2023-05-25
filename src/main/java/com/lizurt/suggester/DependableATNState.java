@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.antlr.v4.runtime.atn.ATNState;
+import org.antlr.v4.runtime.atn.RuleStartState;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,7 +21,11 @@ import java.util.Set;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class DependableATNState {
+    // the rule that contains the atn state
+    private RuleStartState atnRuleState;
+
     // the state itself
     private ATNState atnState;
 
@@ -45,6 +50,8 @@ public class DependableATNState {
     // which transitions' following states are banned to be checked. Used in star and plus blocks where we don't want
     // to loop infinitely
     private Set<ATNState> bannedStates;
+
+    private boolean lastTokenConsumedViaBannedRule;
 
     @Override
     public String toString() {
