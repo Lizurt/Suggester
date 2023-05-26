@@ -10,9 +10,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 public class ReflectiveLexerAndParserFactory implements LexerAndParserFactory {
-
-    private final Constructor<? extends Lexer> lexerCtr;
     private final Constructor<? extends Parser> parserCtr;
+    private final Constructor<? extends Lexer> lexerCtr;
 
     public ReflectiveLexerAndParserFactory(Class<? extends Lexer> lexerClass, Class<? extends Parser> parserClass) {
         lexerCtr = getConstructor(lexerClass, CharStream.class);
@@ -46,5 +45,4 @@ public class ReflectiveLexerAndParserFactory implements LexerAndParserFactory {
             throw new IllegalArgumentException(e);
         }
     }
-
 }
