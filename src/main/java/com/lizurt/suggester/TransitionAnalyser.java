@@ -12,13 +12,13 @@ public class TransitionAnalyser {
         return analyseTransition(transition, null);
     }
 
-    public TransitionAnalyseResult analyseTransition(Transition transition, DependableATNState sourceState) {
+    public TransitionAnalyseResult analyseTransition(Transition transition, ExtendedATNState sourceState) {
         return analyseTransition(transition, sourceState, null, -1);
     }
 
     public TransitionAnalyseResult analyseTransition(
             Transition transition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -52,7 +52,7 @@ public class TransitionAnalyser {
 
     private TransitionAnalyseResult analyseActionTransition(
             ActionTransition actionTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -67,7 +67,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseAtomTransition(
             AtomTransition atomTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -94,7 +94,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseEpsilonTransition(
             EpsilonTransition epsilonTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -120,7 +120,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseNotSetTransition(
             NotSetTransition notSetTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -135,7 +135,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analysePrecedencePredicateTransition(
             PrecedencePredicateTransition precedencePredicateTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -150,7 +150,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analysePredicateTransition(
             PredicateTransition predicateTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -165,7 +165,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseRangeTransition(
             RangeTransition rangeTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -180,7 +180,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseRuleTransition(
             RuleTransition ruleTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -195,7 +195,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseSetTransition(
             SetTransition setTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {
@@ -235,7 +235,7 @@ public class TransitionAnalyser {
     }
     private TransitionAnalyseResult analyseWildcardTransition(
             WildcardTransition wildcardTransition,
-            DependableATNState sourceState,
+            ExtendedATNState sourceState,
             List<? extends Token> tokens,
             int tokenListIndex
     ) {

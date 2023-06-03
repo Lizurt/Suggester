@@ -23,5 +23,5 @@ public class TransitionAnalyseResult {
     private final ATNState followingState;
 
     // from which state this transition come out of
-    private final DependableATNState sourceState;
+    private final ExtendedATNState sourceState;
 }

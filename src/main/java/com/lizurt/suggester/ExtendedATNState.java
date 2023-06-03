@@ -7,7 +7,6 @@ import lombok.Setter;
 import org.antlr.v4.runtime.atn.ATNState;
 import org.antlr.v4.runtime.atn.RuleStartState;
 
-import java.util.HashSet;
 import java.util.Set;
 
 // For example we have A state who refers B state via RuleTransition who then leads to C state.
@@ -22,7 +21,7 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class DependableATNState {
+public class ExtendedATNState {
     // the rule that contains the atn state
     private RuleStartState atnRuleState;
 
@@ -30,7 +29,7 @@ public class DependableATNState {
     private ATNState atnState;
 
     // its previous state
-    private DependableATNState prevState;
+    private ExtendedATNState prevState;
 
     // the transition who referenced current rule branch. If, in the current branch, we reach a RuleStopState, we
     // add a transition's following state to the to-check list
