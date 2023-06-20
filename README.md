@@ -2,7 +2,7 @@
 
 ## About
 
-A library for getting suggestions for a given text.
+A library for getting autocomplete suggestions for a given text of any language that can be described using ANTLR grammar.
 
 The library uses ANTLR (version 4) grammar to generate suggestions, so it uses not only keywords, but also the grammar, word order.
 
@@ -31,7 +31,7 @@ dependencies {
     <dependency>
         <groupId>com.lizurt.suggester</groupId>
         <artifactId>Suggester</artifactId>
-        <version>2.0</version>
+        <version>2.1</version>
         <scope>system</scope>
         <systemPath>your/path/to/library.jar</systemPath>
     </dependency>
@@ -64,8 +64,10 @@ For such java grammar example, the library would spend up to 5 ms to generate su
 
 LexerAndParserFactory is an interface that can generate lexer and parser instances. The default, already implemented way to generate the instances is using `ReflectiveLexerAndParserFactory` that requires 2 arguments in its constructor: a lexer rules class and a parser rules class. As mentioned earlier, these classes can be generated using maven plugins.
 
-After that, you'll need to create a `Suggester` instance. The first argument is the LexerAndParserFactory instance that generates lexer and parser instances. Also, there is a second argument that you can assign. Sometimes it's useful to not generate suggestions for some rules, which we can do by giving a set of lexer rule names as the second argument. If your language supports not only keywords, but also identifiers (function names, variables, etc) like almost all languages do, you probably don't want to see suggestions like "Aa", "Ab", "AA" or other similar ones.
+After that, you'll need to create a `Suggester` instance. The first argument is the `LexerAndParserFactory` instance that generates lexer and parser instances. Also, there is a second argument that you can assign. Sometimes it's useful to not generate suggestions for some rules, which we can do by giving a set of lexer rule names as the second argument. If your language supports not only keywords, but also identifiers (function names, variables, etc) like almost all languages do, you probably don't want to see suggestions like "Aa", "Ab", "AA" or other similar ones. An attempt to generate such suggestions will **significantly** increase suggestions generation time (up to 10 s for the example above).
 
 Additionally, you can define your suggestions' case preferences by giving a Suggester's `casePreference` field a new value. In this example, we try to get lower-cased suggestions.
 
 The last code line finally generates a list of suggestions but simply calling `generateAndGetSuggestions` method with an input text fragment argument.
+
+
